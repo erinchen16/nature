@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮差小熊送信记 - 可爱路径游戏</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Comic Neue', cursive, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff9f0;
+            color: #5a3d2b;
+            background-image: url('data:image/svg+xml;utf8,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="3" fill="%23f8d5b8" opacity="0.5"/><circle cx="50" cy="50" r="2" fill="%23f8d5b8" opacity="0.5"/><circle cx="80" cy="30" r="4" fill="%23f8d5b8" opacity="0.5"/><circle cx="30" cy="70" r="3" fill="%23f8d5b8" opacity="0.5"/><circle cx="70" cy="80" r="2" fill="%23f8d5b8" opacity="0.5"/></svg>');
+        }
+        
+        h1 {
+            color: #e67a7a;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 3px 3px 0 #f8e8d0;
+            letter-spacing: 1px;
+        }
+        
+        .game-description {
+            background-color: #f8e8d0;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 3px dashed #e67a7a;
+            font-size: 1.1em;
+            line-height: 1.5;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            border: 4px solid #e67a7a;
+        }
+        
+        .grid-container {
+            margin-bottom: 20px;
+            background-color: #fff9f0;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            border: 3px solid #f8d5b8;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 2px;
+            background-color: #f8d5b8;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .cell {
+            width: 30px;
+            height: 30px;
+            background-color: #fff9f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 12px;
+            user-select: none;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .cell:hover {
+            transform: scale(1.05);
+            z-index: 1;
+        }
+        
+        .cell.start {
+            background-color: #a8e6cf;
+            color: #5a3d2b;
+            font-weight: bold;
+        }
+        
+        .cell.start::after {
+            content: "🐻";
+            font-size: 18px;
+        }
+        
+        .cell.end {
+            background-color: #ffaaa5;
+            color: #5a3d2b;
+            font-weight: bold;
+        }
+        
+        .cell.end::after {
+            content: "✉️";
+            font-size: 18px;
+        }
+        
+        .cell.obstacle {
+            background-color: #dcedc1;
+            color: #5a3d2b;
+        }
+        
+        .cell.obstacle::after {
+            content: "🌳";
+            font-size: 18px;
+        }
+        
+        .cell.turn-obstacle {
+            background-color: #ffcc5c;
+            color: #5a3d2b;
+        }
+        
+        .cell.turn-obstacle::after {
+            content: "🚧";
+            font-size: 18px;
+        }
+        
+        .cell.path {
+            background-color: #ffd3b6;
+            color: #5a3d2b;
+            font-weight: bold;
+        }
+        
+        .cell.path::after {
+            content: "👣";
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .cell.visited {
+            background-color: #d8b5ff;
+            color: white;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #e67a7a;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: 'Comic Neue', cursive;
+            font-weight: bold;
+            box-shadow: 0 3px 0 #c45c5c;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        button:hover {
+            background-color: #ff8c8c;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 0 #c45c5c;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #c45c5c;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            box-shadow: 0 3px 0 #999;
+            cursor: not-allowed;
+        }
+        
+        .mode-selector {
+            margin-bottom: 15px;
+            text-align: center;
+            background-color: #f8e8d0;
+            padding: 10px;
+            border-radius: 50px;
+            border: 2px solid #e67a7a;
+        }
+        
+        .mode-selector label {
+            margin-right: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        .mode-selector input[type="radio"] {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border: 2px solid #e67a7a;
+            border-radius: 50%;
+            position: absolute;
+            left: 0;
+            top: 2px;
+            transition: all 0.2s;
+        }
+        
+        .mode-selector input[type="radio"]:checked {
+            background-color: #e67a7a;
+            box-shadow: 0 0 0 3px #f8d5b8;
+        }
+        
+        .stats {
+            background-color: #f8e8d0;
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            text-align: center;
+            border: 2px dashed #e67a7a;
+            font-size: 1.1em;
+        }
+        
+        .carbon-savings {
+            font-weight: bold;
+            color: #4caf50;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            background-color: #f8e8d0;
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px dotted #e67a7a;
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            color: #e67a7a;
+            font-size: 1.5em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            padding-left: 25px;
+            list-style-type: none;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 30px;
+            line-height: 1.5;
+        }
+        
+        .instructions li::before {
+            content: "✉️";
+            position: absolute;
+            left: 0;
+        }
+        
+        .download-section {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .download-btn {
+            background-color: #4caf50;
+            box-shadow: 0 3px 0 #3d8b40;
+        }
+        
+        .download-btn:hover {
+            background-color: #66bb6a;
+            box-shadow: 0 5px 0 #3d8b40;
+        }
+        
+        .download-btn:active {
+            box-shadow: 0 1px 0 #3d8b40;
+        }
+        
+        /* 添加一些装饰元素 */
+        .decoration {
+            position: absolute;
+            font-size: 20px;
+            opacity: 0.7;
+            z-index: -1;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: repeat(15, 20px);
+                grid-template-rows: repeat(15, 20px);
+            }
+            
+            .cell {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+            
+            .cell.start::after, 
+            .cell.end::after, 
+            .cell.obstacle::after,
+            .cell.turn-obstacle::after {
+                font-size: 14px;
+            }
+            
+            .cell.path::after {
+                font-size: 10px;
+            }
+            
+            .mode-selector label {
+                display: block;
+                margin: 5px 0;
+            }
+            
+            .controls, .download-section {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>邮差小熊送信记 📮</h1>
+    
+    <div class="game-description">
+        <p>帮助可爱的小熊邮差找到最短的送信路径，减少碳排放！选择起点和终点，避开小树和转弯障碍物，找到最短路径。更短的路径意味着更少的燃料消耗和更低的碳足迹哦！ 🌍💚</p>
+    </div>
+    
+    <div class="game-container">
+        <div class="mode-selector">
+            <label><input type="radio" name="mode" value="start" checked> 设置起点 🐻</label>
+            <label><input type="radio" name="mode" value="end"> 设置终点 ✉️</label>
+            <label><input type="radio" name="mode" value="obstacle"> 设置小树 🌳</label>
+            <label><input type="radio" name="mode" value="turn-obstacle"> 设置转弯障碍 🚧</label>
+            <label><input type="radio" name="mode" value="clear"> 清除格子 🧹</label>
+        </div>
+        
+        <div class="grid-container">
+            <div class="grid" id="grid"></div>
+        </div>
+        
+        <div class="controls">
+            <button id="findPath">寻找最短路径 🛤️</button>
+            <button id="resetGrid">重置地图 🔄</button>
+            <button id="randomObstacles">随机障碍物 🌲🚧</button>
+        </div>
+        
+        <div class="stats">
+            <p>路径长度: <span id="pathLength">0</span> 格 👣</p>
+            <p>估算碳足迹节省: <span id="carbonSavings" class="carbon-savings">0</span> 克CO₂ 🌱</p>
+        </div>
+        
+        <div class="download-section">
+            <button id="downloadMap" class="download-btn">下载地图图纸(JSON) 📝</button>
+            <button id="downloadImage" class="download-btn">下载地图图片(PNG) 🖼️</button>
+        </div>
+    </div>
+    
+    <div class="instructions">
+        <h3>游戏说明 📖</h3>
+        <ul>
+            <li>选择模式后点击网格设置小熊起点(🐻)、信件终点(✉️)、小树障碍物(🌳)或转弯障碍物(🚧)</li>
+            <li>转弯障碍物(🚧)会让小熊必须改变行进方向</li>
+            <li>点击"寻找最短路径"计算并显示可爱脚印路径(👣)</li>
+            <li>路径越短，碳足迹节省越多(每格约节省5克CO₂)</li>
+            <li>可以添加随机障碍物增加难度</li>
+            <li>点击"重置地图"清除所有设置</li>
+            <li>点击"下载地图图纸"保存当前地图配置</li>
+            <li>点击"下载地图图片"将当前地图保存为PNG图片</li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridElement = document.getElementById('grid');
+            const findPathBtn = document.getElementById('findPath');
+            const resetGridBtn = document.getElementById('resetGrid');
+            const randomObstaclesBtn = document.getElementById('randomObstacles');
+            const downloadMapBtn = document.getElementById('downloadMap');
+            const downloadImageBtn = document.getElementById('downloadImage');
+            const pathLengthElement = document.getElementById('pathLength');
+            const carbonSavingsElement = document.getElementById('carbonSavings');
+            const modeRadios = document.querySelectorAll('input[name="mode"]');
+            
+            const ROWS = 15;
+            const COLS = 15;
+            const CARBON_PER_CELL = 5; // 每格路径节省的CO₂克数
+            
+            let grid = [];
+            let start = null;
+            let end = null;
+            let currentMode = 'start';
+            
+            // 初始化网格
+            function initializeGrid() {
+                grid = [];
+                gridElement.innerHTML = '';
+                
+                for (let row = 0; row < ROWS; row++) {
+                    grid[row] = [];
+                    for (let col = 0; col < COLS; col++) {
+                        grid[row][col] = {
+                            row,
+                            col,
+                            isStart: false,
+                            isEnd: false,
+                            isObstacle: false,
+                            isTurnObstacle: false,
+                            isPath: false,
+                            isVisited: false
+                        };
+                        
+                        const cellElement = document.createElement('div');
+                        cellElement.className = 'cell';
+                        cellElement.dataset.row = row;
+                        cellElement.dataset.col = col;
+                        
+                        cellElement.addEventListener('click', () => handleCellClick(row, col));
+                        
+                        gridElement.appendChild(cellElement);
+                    }
+                }
+                
+                start = null;
+                end = null;
+                updateStats();
+            }
+            
+            // 处理格子点击
+            function handleCellClick(row, col) {
+                const cell = grid[row][col];
+                const cellElement = getCellElement(row, col);
+                
+                // 清除当前状态
+                cell.isStart = false;
+                cell.isEnd = false;
+                cell.isObstacle = false;
+                cell.isTurnObstacle = false;
+                cell.isPath = false;
+                cell.isVisited = false;
+                
+                // 根据模式设置状态
+                if (currentMode === 'start') {
+                    // 只能有一个起点
+                    if (start) {
+                        start.isStart = false;
+                        getCellElement(start.row, start.col).className = 'cell';
+                    }
+                    start = cell;
+                    cell.isStart = true;
+                    cellElement.className = 'cell start';
+                } else if (currentMode === 'end') {
+                    // 只能有一个终点
+                    if (end) {
+                        end.isEnd = false;
+                        getCellElement(end.row, end.col).className = 'cell';
+                    }
+                    end = cell;
+                    cell.isEnd = true;
+                    cellElement.className = 'cell end';
+                } else if (currentMode === 'obstacle') {
+                    // 切换障碍物状态
+                    cell.isObstacle = !cell.isObstacle;
+                    cell.isTurnObstacle = false; // 确保不会同时是两种障碍物
+                    cellElement.className = cell.isObstacle ? 'cell obstacle' : 'cell';
+                } else if (currentMode === 'turn-obstacle') {
+                    // 切换转弯障碍物状态
+                    cell.isTurnObstacle = !cell.isTurnObstacle;
+                    cell.isObstacle = false; // 确保不会同时是两种障碍物
+                    cellElement.className = cell.isTurnObstacle ? 'cell turn-obstacle' : 'cell';
+                } else if (currentMode === 'clear') {
+                    // 清除格子
+                    cellElement.className = 'cell';
+                    if (cell === start) start = null;
+                    if (cell === end) end = null;
+                }
+                
+                // 清除之前计算的路径
+                clearPath();
+            }
+            
+            // 获取格子元素
+            function getCellElement(row, col) {
+                return document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            }
+            
+            // 清除路径显示
+            function clearPath() {
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const cell = grid[row][col];
+                        const cellElement = getCellElement(row, col);
+                        
+                        // 只清除路径和访问标记，不影响障碍物
+                        if (cell.isPath || cell.isVisited) {
+                            cell.isPath = false;
+                            cell.isVisited = false;
+                            
+                            // 恢复单元格的原始状态
+                            if (cell.isStart) {
+                                cellElement.className = 'cell start';
+                            } else if (cell.isEnd) {
+                                cellElement.className = 'cell end';
+                            } else if (cell.isObstacle) {
+                                cellElement.className = 'cell obstacle';
+                            } else if (cell.isTurnObstacle) {
+                                cellElement.className = 'cell turn-obstacle';
+                            } else {
+                                cellElement.className = 'cell';
+                            }
+                        }
+                    }
+                }
+                updateStats();
+            }
+            
+            // 寻找最短路径
+            function findShortestPath() {
+                if (!start || !end) {
+                    alert('请先设置小熊起点和信件终点哦！🐻✉️');
+                    return;
+                }
+                
+                // 清除之前的路径，但保留所有障碍物
+                clearPath();
+                
+                // 使用广度优先搜索(BFS)算法，考虑转弯障碍物
+                const queue = [];
+                const visited = new Set();
+                const predecessors = {};
+                const directions = [
+                    [-1, 0], // 上
+                    [0, 1],  // 右
+                    [1, 0],  // 下
+                    [0, -1]  // 左
+                ];
+                
+                // 每个节点需要记录到达时的方向
+                queue.push({ cell: start, direction: null });
+                visited.add(`${start.row},${start.col},null`);
+                
+                let found = false;
+                
+                while (queue.length > 0 && !found) {
+                    const current = queue.shift();
+                    const currentCell = current.cell;
+                    const currentDirection = current.direction;
+                    
+                    // 标记为已访问(如果不是起点或终点)
+                    if (currentCell !== start && currentCell !== end && !currentCell.isTurnObstacle) {
+                        currentCell.isVisited = true;
+                        getCellElement(currentCell.row, currentCell.col).className = 'cell visited';
+                    }
+                    
+                    // 检查是否是终点
+                    if (currentCell === end) {
+                        found = true;
+                        break;
+                    }
+                    
+                    // 检查所有相邻格子
+                    for (let i = 0; i < directions.length; i++) {
+                        const [dr, dc] = directions[i];
+                        const newRow = currentCell.row + dr;
+                        const newCol = currentCell.col + dc;
+                        
+                        // 检查边界
+                        if (newRow < 0 || newRow >= ROWS || newCol < 0 || newCol >= COLS) {
+                            continue;
+                        }
+                        
+                        const neighbor = grid[newRow][newCol];
+                        
+                        // 检查是否是普通障碍物
+                        if (neighbor.isObstacle) {
+                            continue;
+                        }
+                        
+                        // 检查是否是转弯障碍物
+                        let mustTurn = neighbor.isTurnObstacle;
+                        
+                        // 如果当前方向不为null且遇到转弯障碍物，必须改变方向
+                        if (mustTurn && currentDirection !== null && i === currentDirection) {
+                            continue; // 不能直行通过转弯障碍物
+                        }
+                        
+                        // 计算新方向
+                        const newDirection = i;
+                        
+                        // 检查是否已访问
+                        const neighborKey = `${newRow},${newCol},${newDirection}`;
+                        if (visited.has(neighborKey)) {
+                            continue;
+                        }
+                        
+                        visited.add(neighborKey);
+                        predecessors[neighborKey] = current;
+                        queue.push({ cell: neighbor, direction: newDirection });
+                    }
+                }
+                
+                // 如果找到路径，回溯并标记
+                if (found) {
+                    let path = [];
+                    let current = queue.find(item => item.cell === end);
+                    
+                    while (current && current.cell !== start) {
+                        path.unshift(current.cell);
+                        const predKey = `${current.cell.row},${current.cell.col},${current.direction}`;
+                        current = predecessors[predKey];
+                    }
+                    
+                    // 显示路径，但不覆盖转弯障碍物的显示
+                    path.forEach(cell => {
+                        if (!cell.isTurnObstacle) { // 不改变转弯障碍物的显示
+                            cell.isPath = true;
+                            if (cell !== end) { // 保持终点颜色不变
+                                getCellElement(cell.row, cell.col).className = 'cell path';
+                            }
+                        }
+                    });
+                    
+                    updateStats(path.length);
+                } else {
+                    alert('小熊找不到送信的路径了！试试移除一些障碍物吧！🌳🚧🚫');
+                }
+            }
+            
+            // 更新统计信息
+            function updateStats(pathLength = 0) {
+                pathLengthElement.textContent = pathLength;
+                carbonSavingsElement.textContent = pathLength * CARBON_PER_CELL;
+            }
+            
+            // 添加随机障碍物
+            function addRandomObstacles() {
+                clearPath();
+                
+                // 清除现有障碍物(除了起点和终点)
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const cell = grid[row][col];
+                        if (!cell.isStart && !cell.isEnd) {
+                            cell.isObstacle = false;
+                            cell.isTurnObstacle = false;
+                            getCellElement(row, col).className = 'cell';
+                        }
+                    }
+                }
+                
+                // 添加随机障碍物(约15%的格子)
+                const obstacleCount = Math.floor(ROWS * COLS * 0.15);
+                let added = 0;
+                
+                while (added < obstacleCount) {
+                    const row = Math.floor(Math.random() * ROWS);
+                    const col = Math.floor(Math.random() * COLS);
+                    const cell = grid[row][col];
+                    
+                    if (!cell.isStart && !cell.isEnd && !cell.isObstacle && !cell.isTurnObstacle) {
+                        // 随机决定是普通障碍物还是转弯障碍物
+                        if (Math.random() < 0.3) { // 30%概率是转弯障碍物
+                            cell.isTurnObstacle = true;
+                            getCellElement(row, col).className = 'cell turn-obstacle';
+                        } else {
+                            cell.isObstacle = true;
+                            getCellElement(row, col).className = 'cell obstacle';
+                        }
+                        added++;
+                    }
+                }
+            }
+            
+            // 下载地图图纸
+            function downloadMap() {
+                if (!start || !end) {
+                    alert('请先设置小熊起点和信件终点哦！🐻✉️');
+                    return;
+                }
+                
+                // 创建地图数据对象
+                const mapData = {
+                    rows: ROWS,
+                    cols: COLS,
+                    start: { row: start.row, col: start.col },
+                    end: { row: end.row, col: end.col },
+                    obstacles: [],
+                    turnObstacles: [],
+                    createdAt: new Date().toISOString()
+                };
+                
+                // 收集所有障碍物
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        if (grid[row][col].isObstacle) {
+                            mapData.obstacles.push({ row, col });
+                        } else if (grid[row][col].isTurnObstacle) {
+                            mapData.turnObstacles.push({ row, col });
+                        }
+                    }
+                }
+                
+                // 转换为JSON字符串
+                const mapJson = JSON.stringify(mapData, null, 2);
+                
+                // 创建下载链接
+                const blob = new Blob([mapJson], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `小熊邮差地图_${new Date().toLocaleDateString()}.json`;
+                
+                // 触发下载
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            }
+            
+            // 下载地图图片为PNG
+            function downloadImage() {
+                // 创建一个临时canvas元素
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                // 设置canvas大小与网格匹配
+                const cellSize = 30; // 与CSS中设置的单元格大小一致
+                const padding = 20; // 四周留白
+                canvas.width = COLS * cellSize + padding * 2;
+                canvas.height = ROWS * cellSize + padding * 2 + 40; // 额外空间给标题和统计信息
+                
+                // 填充背景色
+                ctx.fillStyle = '#fff9f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 绘制主容器
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = '#e67a7a';
+                ctx.lineWidth = 4;
+                ctx.fillRect(padding, padding, COLS * cellSize, ROWS * cellSize);
+                ctx.strokeRect(padding, padding, COLS * cellSize, ROWS * cellSize);
+                
+                // 绘制网格背景
+                ctx.fillStyle = '#fff9f0';
+                ctx.fillRect(padding, padding, COLS * cellSize, ROWS * cellSize);
+                
+                // 绘制网格线
+                ctx.strokeStyle = '#f8d5b8';
+                ctx.lineWidth = 2;
+                
+                // 垂直线
+                for (let col = 0; col <= COLS; col++) {
+                    ctx.beginPath();
+                    ctx.moveTo(padding + col * cellSize, padding);
+                    ctx.lineTo(padding + col * cellSize, padding + ROWS * cellSize);
+                    ctx.stroke();
+                }
+                
+                // 水平线
+                for (let row = 0; row <= ROWS; row++) {
+                    ctx.beginPath();
+                    ctx.moveTo(padding, padding + row * cellSize);
+                    ctx.lineTo(padding + COLS * cellSize, padding + row * cellSize);
+                    ctx.stroke();
+                }
+                
+                // 绘制单元格内容
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const cell = grid[row][col];
+                        const x = padding + col * cellSize;
+                        const y = padding + row * cellSize;
+                        
+                        // 设置单元格颜色
+                        if (cell.isStart) {
+                            ctx.fillStyle = '#a8e6cf';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.font = '18px Arial';
+                            ctx.fillText('🐻', x + 6, y + 20);
+                        } else if (cell.isEnd) {
+                            ctx.fillStyle = '#ffaaa5';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.font = '18px Arial';
+                            ctx.fillText('✉️', x + 6, y + 20);
+                        } else if (cell.isObstacle) {
+                            ctx.fillStyle = '#dcedc1';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.font = '18px Arial';
+                            ctx.fillText('🌳', x + 6, y + 20);
+                        } else if (cell.isTurnObstacle) {
+                            ctx.fillStyle = '#ffcc5c';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.font = '18px Arial';
+                            ctx.fillText('🚧', x + 6, y + 20);
+                        } else if (cell.isPath) {
+                            ctx.fillStyle = '#ffd3b6';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                            ctx.font = '14px Arial';
+                            ctx.fillText('👣', x + 8, y + 18);
+                        } else if (cell.isVisited) {
+                            ctx.fillStyle = '#d8b5ff';
+                            ctx.fillRect(x, y, cellSize, cellSize);
+                        }
+                        
+                        // 绘制单元格边框
+                        ctx.strokeStyle = '#f8d5b8';
+                        ctx.strokeRect(x, y, cellSize, cellSize);
+                    }
+                }
+                
+                // 添加标题
+                ctx.fillStyle = '#e67a7a';
+                ctx.font = 'bold 24px "Comic Neue", cursive';
+                ctx.textAlign = 'center';
+                // ctx.fillText('小熊邮差送信地图 🐻✉️', canvas.width / 2, 30);
+                
+                // 添加统计信息
+                ctx.fillStyle = '#5a3d2b';
+                ctx.font = 'bold 16px "Comic Neue", cursive';
+                ctx.textAlign = 'center';
+                ctx.fillText(`路径长度: ${document.getElementById('pathLength').textContent} 格 👣`, canvas.width / 2, canvas.height - 40);
+                ctx.fillText(`碳足迹节省: ${document.getElementById('carbonSavings').textContent} 克CO₂ 🌱`, canvas.width / 2, canvas.height - 15);
+                
+                // 转换为PNG并下载
+                const dataURL = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = dataURL;
+                a.download = `小熊邮差地图_${new Date().toLocaleDateString()}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            
+            // 事件监听器
+            modeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.checked) {
+                        currentMode = this.value;
+                    }
+                });
+            });
+            
+            findPathBtn.addEventListener('click', findShortestPath);
+            resetGridBtn.addEventListener('click', initializeGrid);
+            randomObstaclesBtn.addEventListener('click', addRandomObstacles);
+            downloadMapBtn.addEventListener('click', downloadMap);
+            downloadImageBtn.addEventListener('click', downloadImage);
+            
+            // 初始化游戏
+            initializeGrid();
+            
+            // 添加一些装饰元素
+            const decorations = ['🌸', '🌼', '🍃', '🌻', '🐝', '🦋'];
+            for (let i = 0; i < 10; i++) {
+                const deco = document.createElement('div');
+                deco.className = 'decoration';
+                deco.textContent = decorations[Math.floor(Math.random() * decorations.length)];
+                deco.style.left = Math.random() * 100 + '%';
+                deco.style.top = Math.random() * 100 + '%';
+                deco.style.transform = `rotate(${Math.random() * 360}deg) scale(${0.5 + Math.random()})`;
+                document.body.appendChild(deco);
+            }
+        });
+    </script>
+</body>
+</html>

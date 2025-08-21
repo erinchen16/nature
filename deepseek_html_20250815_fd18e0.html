@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灵动萤火虫动画</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: radial-gradient(ellipse at center, #0a0e27 0%, #000000 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .firefly-container {
+            position: relative;
+            width: 70%;
+            height: 70%;
+            min-width: 300px;
+            min-height: 300px;
+        }
+        
+        .firefly {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 0 8px 3px #fffa7d;
+            animation: flicker 1s infinite alternate, move linear infinite;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+        
+        @keyframes flicker {
+            0%, 100% {
+                opacity: 0.3;
+                box-shadow: 0 0 5px 1px #fffa7d;
+            }
+            20%, 80% {
+                opacity: 0.8;
+                box-shadow: 0 0 12px 4px #fffa7d;
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 15px 6px #fff9a8;
+            }
+        }
+        
+        @keyframes move {
+            0% {
+                transform: translate(0, 0) scale(0.8);
+            }
+            50% {
+                transform: translate(var(--tx), var(--ty)) scale(1.2);
+            }
+            100% {
+                transform: translate(var(--tx2), var(--ty2)) scale(0.9);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="firefly-container" id="fireflyContainer"></div>
+    
+    <script>
+        // 创建萤火虫
+        function createFireflies(count) {
+            const container = document.getElementById('fireflyContainer');
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+            
+            for (let i = 0; i < count; i++) {
+                const firefly = document.createElement('div');
+                firefly.className = 'firefly';
+                
+                // 初始位置在容器中央附近随机分布
+                const centerX = containerWidth / 2;
+                const centerY = containerHeight / 2;
+                const startX = centerX + (Math.random() - 0.5) * containerWidth * 0.3;
+                const startY = centerY + (Math.random() - 0.5) * containerHeight * 0.3;
+                firefly.style.left = `${startX}px`;
+                firefly.style.top = `${startY}px`;
+                
+                // 随机大小
+                const size = 2 + Math.random() * 4;
+                firefly.style.width = `${size}px`;
+                firefly.style.height = `${size}px`;
+                
+                // 更快的动画时间和更短的延迟
+                const duration = 2 + Math.random() * 3;
+                const delay = Math.random() * 1;
+                firefly.style.animationDuration = `${duration}s, ${duration * 1.5}s`;
+                firefly.style.animationDelay = `${delay}s`;
+                
+                // 更复杂的移动路径
+                const tx1 = (Math.random() - 0.5) * containerWidth * 0.9;
+                const ty1 = (Math.random() - 0.5) * containerHeight * 0.9;
+                const tx2 = tx1 + (Math.random() - 0.5) * containerWidth * 0.4;
+                const ty2 = ty1 + (Math.random() - 0.5) * containerHeight * 0.4;
+                
+                firefly.style.setProperty('--tx', `${tx1}px`);
+                firefly.style.setProperty('--ty', `${ty1}px`);
+                firefly.style.setProperty('--tx2', `${tx2}px`);
+                firefly.style.setProperty('--ty2', `${ty2}px`);
+                
+                container.appendChild(firefly);
+            }
+        }
+        
+        // 初始化50只萤火虫
+        window.onload = function() {
+            createFireflies(50);
+            
+            // 点击添加更多萤火虫（每次10只）
+            document.addEventListener('click', function(e) {
+                for (let i = 0; i < 10; i++) {
+                    setTimeout(() => {
+                        createFireflies(1);
+                    }, i * 100);
+                }
+            });
+        };
+        
+        // 鼠标移动时萤火虫轻微避让效果
+        document.addEventListener('mousemove', function(e) {
+            const container = document.getElementById('fireflyContainer');
+            const rect = container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const fireflies = document.querySelectorAll('.firefly');
+            fireflies.forEach(fly => {
+                const flyX = parseFloat(fly.style.left);
+                const flyY = parseFloat(fly.style.top);
+                const distance = Math.sqrt(Math.pow(mouseX - flyX, 2) + Math.pow(mouseY - flyY, 2));
+                
+                if (distance < 100) {
+                    const angle = Math.atan2(flyY - mouseY, flyX - mouseX);
+                    const pushDistance = (100 - distance) / 5;
+                    const newX = flyX + Math.cos(angle) * pushDistance;
+                    const newY = flyY + Math.sin(angle) * pushDistance;
+                    
+                    fly.style.left = `${newX}px`;
+                    fly.style.top = `${newY}px`;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

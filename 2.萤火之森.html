@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>萤火虫守护者 - 惊扰限制版</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            /*background-color: #000;*/
+            font-family: Arial, sans-serif;
+            color: white;
+            user-select: none;
+            background-image: url('yinghuocong.jpg');
+
+        }
+        #gameCanvas {
+            display: block;
+            background-color: #000;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 100;
+            background-image: url('yinghuocong.jpg');
+            background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  height: 100vh;
+  margin: 0;
+
+        }
+        #instructionsModal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            display: none;
+            z-index: 101;
+        }
+        button {
+            background-color: #d22;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        button:hover {
+            background-color: #f33;
+        }
+        h1 {
+            color: #fffa7d;
+            margin-bottom: 20px;
+        }
+        
+        /* 萤火虫样式 */
+        .firefly {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: #fff;
+            box-shadow: 0 0 6px 2px #fffa7d;
+            animation: flicker 2s infinite alternate;
+            opacity: 0;
+            pointer-events: none;
+            will-change: transform;
+        }
+        
+        @keyframes flicker {
+            0%, 100% {
+                opacity: 0.2;
+                box-shadow: 0 0 6px 2px #fffa7d;
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 10px 4px #fffa7d;
+            }
+        }
+        
+        #disturbance {
+            color: #ff6;
+        }
+        #disturbance.warning {
+            color: #f66;
+            animation: pulse 0.5s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.2); }
+        }
+        
+        /* 音乐控制按钮 */
+        #soundControls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .sound-btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .tabButton {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            margin: 0 5px;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .tabButton:hover {
+            background-color: rgba(50, 50, 50, 0.7);
+        }
+
+        .tabButton.active {
+            background-color: rgba(80, 80, 80, 0.9);
+            font-weight: bold;
+        }
+
+        .infoTab {
+            background-color: rgb(132 144 255 / 30%);
+            border-radius: 0 0 8px 8px;
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="firefliesContainer"></div>
+    
+    <div id="ui">
+        <div>生命值: <span id="health">3</span></div>
+        <div>分数: <span id="score">0</span></div>
+        <div>惊扰萤火虫: <span id="disturbance">0</span>/30</div>
+        <div>发现隐形障碍: <span id="hiddenFound">0</span></div>
+    </div>
+    
+    <!-- 音乐控制 -->
+    <div id="soundControls">
+        <div class="sound-btn" id="bgmToggle" title="背景音乐开关">🎵</div>
+        <div class="sound-btn" id="sfxToggle" title="音效开关">🔊</div>
+    </div>
+    
+    <div id="startScreen">
+        <h1>萤火之森</h1>
+        <button id="startButton">开始游戏</button>
+        <button id="instructionsButton">游戏介绍</button>
+    </div>
+    
+    <div id="instructionsModal">
+        <h3>游戏玩法</h3>
+        <p>使用鼠标移动红光手电筒</p>
+        <p>避开黑色障碍物(碰到会减生命值)</p>
+        <p>注意隐形障碍(只有被红光照射才会显现)</p>
+        <p>不要离萤火虫太近(惊扰30次游戏结束)</p>
+        <p>尽可能长时间生存!</p>
+        <button id="closeInstructions">关闭</button>
+    </div>
+    
+<div id="gameOver">
+    <h2 style="color: #ffe48c;">游戏结束</h2>
+    <p id="gameOverReason"></p>
+    <p>你的最终分数: <span id="finalScore">0</span></p>
+    <p>惊扰萤火虫次数: <span id="finalDisturbance">0</span>/30</p>
+    <p>发现的隐形障碍: <span id="finalHiddenFound">0</span></p>
+    
+    <div id="infoTabs" style="margin: 20px 0; display: flex; justify-content: center;">
+        <button class="tabButton active" onclick="switchTab('protection')">保护思考</button>
+        <button class="tabButton" onclick="switchTab('viewing')">观赏指南</button>
+    </div>
+    
+    <div id="protectionTab" class="infoTab" style="display: block;">
+        <div style=" padding: 15px; border-radius: 8px;">
+            <h3>你知道嘛？</h3>
+            <p>萤火虫数量的减少反映了人类活动对自然的影响：</p>
+            <ul style="text-align: left;">
+                <li>光污染会干扰萤火虫的求偶信号</li>
+                <li>极端暴雨、干旱气候影响繁衍</li>
+                <li>部分不规范观赏行为也“驱萤”</li>
+                <!-- <li>过度捕捉影响种群繁衍</li> -->
+            </ul>
+            <p>每个惊扰数字背后，都是对自然平衡的一次破坏。</p>
+        </div>
+    </div>
+    
+    <div id="viewingTab" class="infoTab" style="display: none;">
+        <div style="padding: 15px; border-radius: 8px;">
+            <h3>科学观赏萤火虫指南</h3>
+            <p>让我们学习如何与这些"夜光小精灵"和谐相处：</p>
+            <ul style="text-align: left;">
+                <li><strong>使用红光手电筒：</strong>避免直射</li>
+                <li><strong>保护栖息地：</strong>避免走进萤火虫的栖息地</li>
+                <li><strong>不要白光到处照射！！！</strong></li>
+                <li><strong>不捕捉：</strong>萤火虫寿命短暂，让它们自由繁衍</li>
+                <li><strong>不要踩进草地，草地里可能有萤火虫的幼虫！！</strong></li>
+                <li><strong>穿着适当：</strong>长袖衣裤防蚊，避免使用防蚊水等（会对昆虫也会有影响）</li>
+            </ul>
+            <p>参考资料: <a href="https://www.xiaoyuzhoufm.com/episode/6864c522fe5b544ef3881f86" target="_blank" style="color:#8989dc;;">播客《就是现在》-《世界萤火虫日，除了会发光，萤火虫还能反映环境质量？》</a></p>
+            <!-- <img src="萤火虫播客.jpg" alt="萤火虫自然栖息地" style="max-width: 100%; border-radius: 5px; margin-top: 10px;"> -->
+        </div>
+    </div>
+    
+    <button id="restartButton">再玩一次</button>
+</div>
+
+    <!-- 音频元素 -->
+    <audio id="bgMusic" loop>
+        <source src="evening.mp3" type="audio/mpeg">
+        您的浏览器不支持音频元素。
+    </audio>
+    <audio id="collisionSound">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="disturbSound">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-bird-whistling-chirping-1706.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="discoverSound">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-unlock-game-notification-253.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const firefliesContainer = document.getElementById('firefliesContainer');
+        const startScreen = document.getElementById('startScreen');
+        const instructionsModal = document.getElementById('instructionsModal');
+        const startButton = document.getElementById('startButton');
+        const instructionsButton = document.getElementById('instructionsButton');
+        const closeInstructions = document.getElementById('closeInstructions');
+        const restartButton = document.getElementById('restartButton');
+        
+        // 音频元素
+        const bgMusic = document.getElementById('bgMusic');
+        const collisionSound = document.getElementById('collisionSound');
+        const disturbSound = document.getElementById('disturbSound');
+        const discoverSound = document.getElementById('discoverSound');
+        const bgmToggle = document.getElementById('bgmToggle');
+        const sfxToggle = document.getElementById('sfxToggle');
+        
+        // 设置画布大小为窗口大小
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        firefliesContainer.style.width = `${canvas.width}px`;
+        firefliesContainer.style.height = `${canvas.height}px`;
+        
+        // 游戏状态
+        const game = {
+            health: 3,
+            score: 0,
+            disturbance: 0,
+            maxDisturbance: 30,
+            hiddenFound: 0,
+            isGameOver: false,
+            isPlaying: false,
+            soundEnabled: true,
+            bgmEnabled: true,
+            flashlight: {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 150
+            },
+            player: {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                radius: 20
+            },
+            obstacles: [],
+            hiddenObstacles: [],
+            fireflies: [],
+            lastObstacleTime: 0,
+            lastHiddenObstacleTime: 0,
+            lastFireflyTime: 0,
+            speed: 2
+        };
+        
+        // 初始化游戏
+        function initGame() {
+            game.health = 3;
+            game.score = 0;
+            game.disturbance = 0;
+            game.hiddenFound = 0;
+            game.isGameOver = false;
+            game.obstacles = [];
+            game.hiddenObstacles = [];
+            game.fireflies = [];
+            game.speed = 2;
+            game.lastObstacleTime = 0;
+            game.lastHiddenObstacleTime = 0;
+            game.lastFireflyTime = 0;
+            
+            // 清除所有萤火虫DOM元素
+            firefliesContainer.innerHTML = '';
+            
+            // 初始生成大量萤火虫 (50-100只)
+            const fireflyCount = Math.floor(Math.random() * 50) + 50;
+            for (let i = 0; i < fireflyCount; i++) {
+                spawnFirefly();
+            }
+            
+            updateUI();
+        }
+        
+        // 播放背景音乐
+        function playBackgroundMusic() {
+            if (game.bgmEnabled) {
+                bgMusic.volume = 0.3;
+                bgMusic.play().catch(e => console.log("自动播放被阻止，请用户交互后播放"));
+            }
+        }
+        
+        // 播放音效
+        function playSound(sound, volume = 0.5) {
+            if (game.soundEnabled) {
+                sound.volume = volume;
+                sound.currentTime = 0;
+                sound.play().catch(e => console.log("音效播放失败"));
+            }
+        }
+        
+        // 生成普通障碍物
+        function spawnObstacle() {
+            const size = Math.random() * 30 + 20;
+            let x, y;
+            
+            do {
+                x = Math.random() * (canvas.width - size);
+                y = Math.random() * (canvas.height - size);
+            } while (Math.sqrt((x - game.player.x) ** 2 + (y - game.player.y) ** 2) < 200);
+            
+            game.obstacles.push({
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speedX: (Math.random() - 0.5) * game.speed,
+                speedY: (Math.random() - 0.5) * game.speed
+            });
+        }
+        
+        // 生成隐形障碍物
+        function spawnHiddenObstacle() {
+            const size = Math.random() * 30 + 20;
+            let x, y;
+            
+            do {
+                x = Math.random() * (canvas.width - size);
+                y = Math.random() * (canvas.height - size);
+            } while (Math.sqrt((x - game.player.x) ** 2 + (y - game.player.y) ** 2) < 200);
+            
+            game.hiddenObstacles.push({
+                x: x,
+                y: y,
+                width: size,
+                height: size,
+                speedX: (Math.random() - 0.5) * game.speed,
+                speedY: (Math.random() - 0.5) * game.speed,
+                discovered: false
+            });
+        }
+        
+        // 生成萤火虫
+        function spawnFirefly() {
+            const radius = 2 + Math.random() * 3;
+            let x, y;
+            
+            do {
+                x = Math.random() * canvas.width;
+                y = Math.random() * canvas.height;
+            } while (Math.sqrt((x - game.player.x) ** 2 + (y - game.player.y) ** 2) < 150);
+            
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
+            firefly.style.left = `${x}px`;
+            firefly.style.top = `${y}px`;
+            firefly.style.width = `${radius}px`;
+            firefly.style.height = `${radius}px`;
+            
+            const duration = 5 + Math.random() * 10;
+            const delay = Math.random() * 5;
+            firefly.style.animationDuration = `${duration}s`;
+            firefly.style.animationDelay = `${delay}s`;
+            
+            firefliesContainer.appendChild(firefly);
+            
+            game.fireflies.push({
+                element: firefly,
+                x: x,
+                y: y,
+                radius: radius,
+                speedX: (Math.random() - 0.5) * (game.speed * 0.7),
+                speedY: (Math.random() - 0.5) * (game.speed * 0.7),
+                targetX: x + (Math.random() - 0.5) * 200,
+                targetY: y + (Math.random() - 0.5) * 200,
+                progress: 0,
+                duration: duration
+            });
+        }
+        
+        // 更新UI
+        function updateUI() {
+            document.getElementById('health').textContent = game.health;
+            document.getElementById('score').textContent = game.score;
+            document.getElementById('disturbance').textContent = game.disturbance;
+            document.getElementById('hiddenFound').textContent = game.hiddenFound;
+            
+            const disturbanceElement = document.getElementById('disturbance');
+            if (game.disturbance >= game.maxDisturbance * 0.7) {
+                disturbanceElement.classList.add('warning');
+            } else {
+                disturbanceElement.classList.remove('warning');
+            }
+        }
+        
+        // 游戏结束
+function gameOver(reason) {
+    game.isGameOver = true;
+    game.isPlaying = false;
+    bgMusic.pause();
+    document.getElementById('finalScore').textContent = game.score;
+    document.getElementById('finalDisturbance').textContent = game.disturbance;
+    document.getElementById('finalHiddenFound').textContent = game.hiddenFound;
+    
+    let detailedReason = reason;
+    if (reason.includes("惊扰")) {
+// detailedReason += "<br> - 强光和近距离接触会干扰萤火虫的求偶行为";
+    } else if (reason.includes("生命值")) {
+        detailedReason += " - 象征人类活动对自然环境的破坏";
+    }
+    
+    document.getElementById('gameOverReason').textContent = detailedReason;
+    document.getElementById('gameOver').style.display = 'block';
+}
+        
+        // 重置游戏
+        function resetGame() {
+            document.getElementById('gameOver').style.display = 'none';
+            initGame();
+            game.isPlaying = true;
+            game.isGameOver = false;
+            playBackgroundMusic();
+            gameLoop();
+        }
+        
+        // 开始游戏
+        function startGame() {
+            startScreen.style.display = 'none';
+            game.isPlaying = true;
+            game.isGameOver = false;
+            initGame();
+            playBackgroundMusic();
+            gameLoop();
+        }
+        
+        // 检测碰撞
+        function checkCollisions() {
+            for (let i = 0; i < game.obstacles.length; i++) {
+                const obs = game.obstacles[i];
+                
+                if (game.player.x + game.player.radius > obs.x && 
+                    game.player.x - game.player.radius < obs.x + obs.width &&
+                    game.player.y + game.player.radius > obs.y && 
+                    game.player.y - game.player.radius < obs.y + obs.height) {
+                    
+                    game.health--;
+                    updateUI();
+                    playSound(collisionSound);
+                    
+                    game.obstacles.splice(i, 1);
+                    i--;
+                    
+                    if (game.health <= 0) {
+                        gameOver("你的生命值耗尽了!");
+                        return;
+                    }
+                }
+            }
+            
+            for (let i = 0; i < game.hiddenObstacles.length; i++) {
+                const obs = game.hiddenObstacles[i];
+                
+                if (game.player.x + game.player.radius > obs.x && 
+                    game.player.x - game.player.radius < obs.x + obs.width &&
+                    game.player.y + game.player.radius > obs.y && 
+                    game.player.y - game.player.radius < obs.y + obs.height) {
+                    
+                    game.health--;
+                    updateUI();
+                    playSound(collisionSound);
+                    
+                    game.hiddenObstacles.splice(i, 1);
+                    i--;
+                    
+                    if (game.health <= 0) {
+                        gameOver("你的生命值耗尽了!");
+                        return;
+                    }
+                }
+            }
+            
+            for (let i = 0; i < game.fireflies.length; i++) {
+                const fly = game.fireflies[i];
+                const distance = Math.sqrt((game.flashlight.x - fly.x) ** 2 + (game.flashlight.y - fly.y) ** 2);
+                
+                if (distance < 100) {
+                    game.disturbance++;
+                    game.score = Math.max(0, game.score - 1);
+                    updateUI();
+                    playSound(disturbSound, 0.3);
+                    
+                    if (game.disturbance >= game.maxDisturbance) {
+                        gameOver("你惊扰了太多萤火虫!");
+                        return;
+                    }
+                    
+                    fly.x += (fly.x - game.flashlight.x) * 0.1;
+                    fly.y += (fly.y - game.flashlight.y) * 0.1;
+                    fly.targetX = fly.x + (Math.random() - 0.5) * 200;
+                    fly.targetY = fly.y + (Math.random() - 0.5) * 200;
+                    fly.progress = 0;
+                }
+            }
+            
+            for (let i = 0; i < game.hiddenObstacles.length; i++) {
+                const obs = game.hiddenObstacles[i];
+                const distance = Math.sqrt((game.flashlight.x - (obs.x + obs.width/2)) ** 2 + 
+                                (game.flashlight.y - (obs.y + obs.height/2)) ** 2);
+                
+                if (distance < game.flashlight.radius + Math.max(obs.width, obs.height)/2) {
+                    if (!obs.discovered) {
+                        obs.discovered = true;
+                        game.hiddenFound++;
+                        updateUI();
+                        playSound(discoverSound);
+                    }
+                }
+            }
+        }
+        
+        // 更新萤火虫位置
+        function updateFireflies() {
+            for (let i = 0; i < game.fireflies.length; i++) {
+                const fly = game.fireflies[i];
+                
+                fly.progress += 0.01 / fly.duration;
+                
+                if (fly.progress >= 1) {
+                    fly.targetX = fly.x + (Math.random() - 0.5) * 200;
+                    fly.targetY = fly.y + (Math.random() - 0.5) * 200;
+                    fly.progress = 0;
+                    fly.duration = 5 + Math.random() * 10;
+                }
+                
+                fly.x = fly.x + (fly.targetX - fly.x) * 0.01;
+                fly.y = fly.y + (fly.targetY - fly.y) * 0.01;
+                
+                if (fly.x < 0) fly.x = canvas.width;
+                if (fly.x > canvas.width) fly.x = 0;
+                if (fly.y < 0) fly.y = canvas.height;
+                if (fly.y > canvas.height) fly.y = 0;
+                
+                fly.element.style.left = `${fly.x}px`;
+                fly.element.style.top = `${fly.y}px`;
+            }
+        }
+        
+        // 游戏循环
+        function gameLoop() {
+            if (!game.isPlaying || game.isGameOver) return;
+            
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            game.player.x = game.flashlight.x;
+            game.player.y = game.flashlight.y;
+            
+            const now = Date.now();
+            if (now - game.lastObstacleTime > 2000) {
+                spawnObstacle();
+                game.lastObstacleTime = now;
+            }
+            
+            if (now - game.lastHiddenObstacleTime > 3000) {
+                spawnHiddenObstacle();
+                game.lastHiddenObstacleTime = now;
+            }
+            
+            if (now - game.lastFireflyTime > 2000 && game.fireflies.length < 150) {
+                const addCount = Math.floor(Math.random() * 5) + 1;
+                for (let i = 0; i < addCount; i++) {
+                    spawnFirefly();
+                }
+                game.lastFireflyTime = now;
+            }
+            
+            for (let i = 0; i < game.obstacles.length; i++) {
+                const obs = game.obstacles[i];
+                
+                obs.x += obs.speedX;
+                obs.y += obs.speedY;
+                
+                if (obs.x < 0 || obs.x + obs.width > canvas.width) {
+                    obs.speedX *= -1;
+                }
+                if (obs.y < 0 || obs.y + obs.height > canvas.height) {
+                    obs.speedY *= -1;
+                }
+                
+                ctx.fillStyle = '#111';
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            }
+            
+            for (let i = 0; i < game.hiddenObstacles.length; i++) {
+                const obs = game.hiddenObstacles[i];
+                
+                obs.x += obs.speedX;
+                obs.y += obs.speedY;
+                
+                if (obs.x < 0 || obs.x + obs.width > canvas.width) {
+                    obs.speedX *= -1;
+                }
+                if (obs.y < 0 || obs.y + obs.height > canvas.height) {
+                    obs.speedY *= -1;
+                }
+                
+                const distance = Math.sqrt((game.flashlight.x - (obs.x + obs.width/2)) ** 2 + 
+                                 (game.flashlight.y - (obs.y + obs.height/2)) ** 2);
+                
+                if (distance < game.flashlight.radius + Math.max(obs.width, obs.height)/2) {
+                    ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
+                    ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                    
+                    ctx.strokeStyle = 'rgba(150, 150, 150, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                }
+            }
+            
+            updateFireflies();
+            
+            const gradient = ctx.createRadialGradient(
+                game.flashlight.x, game.flashlight.y, 0,
+                game.flashlight.x, game.flashlight.y, game.flashlight.radius
+            );
+            gradient.addColorStop(0, 'rgba(255, 50, 50, 0.8)');
+            gradient.addColorStop(0.7, 'rgba(150, 0, 0, 0.3)');
+            gradient.addColorStop(1, 'rgba(50, 0, 0, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(game.flashlight.x, game.flashlight.y, game.flashlight.radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(game.player.x, game.player.y, game.player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fill();
+            
+            checkCollisions();
+            
+            game.score++;
+            if (game.score % 100 === 0) {
+                game.speed += 0.2;
+            }
+            updateUI();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 按钮事件
+        startButton.addEventListener('click', startGame);
+        instructionsButton.addEventListener('click', () => {
+            instructionsModal.style.display = 'block';
+        });
+        closeInstructions.addEventListener('click', () => {
+            instructionsModal.style.display = 'none';
+        });
+        restartButton.addEventListener('click', resetGame);
+        
+        // 音乐控制
+        bgmToggle.addEventListener('click', () => {
+            game.bgmEnabled = !game.bgmEnabled;
+            if (game.bgmEnabled) {
+                bgmToggle.textContent = '🎵';
+                playBackgroundMusic();
+            } else {
+                bgmToggle.textContent = '🔇';
+                bgMusic.pause();
+            }
+        });
+        
+        sfxToggle.addEventListener('click', () => {
+            game.soundEnabled = !game.soundEnabled;
+            sfxToggle.textContent = game.soundEnabled ? '🔊' : '🔇';
+        });
+        
+        // 鼠标移动事件
+        canvas.addEventListener('mousemove', (e) => {
+            if (game.isPlaying && !game.isGameOver) {
+                game.flashlight.x = e.clientX;
+                game.flashlight.y = e.clientY;
+            }
+        });
+        
+        // 触摸移动事件
+        canvas.addEventListener('touchmove', (e) => {
+            if (game.isPlaying && !game.isGameOver) {
+                e.preventDefault();
+                game.flashlight.x = e.touches[0].clientX;
+                game.flashlight.y = e.touches[0].clientY;
+            }
+        }, { passive: false });
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            firefliesContainer.style.width = `${canvas.width}px`;
+            firefliesContainer.style.height = `${canvas.height}px`;
+        });
+        
+        // 初始显示开始屏幕
+        startScreen.style.display = 'flex';
+
+
+        function switchTab(tabName) {
+    // 隐藏所有内容标签
+    document.querySelectorAll('.infoTab').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // 移除所有按钮的active类
+    document.querySelectorAll('.tabButton').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // 显示选中的标签并激活对应按钮
+    document.getElementById(tabName + 'Tab').style.display = 'block';
+    event.target.classList.add('active');
+}
+    </script>
+</body>
+</html>

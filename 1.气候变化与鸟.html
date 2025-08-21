@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>羽途 - 候鸟迁徙</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: rgba(100, 149, 237, 0.9);
+            font-family: 'SimSun', serif;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .rain {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .drop {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background: rgba(174, 194, 224, 0.5);
+            border-radius: 0 0 5px 5px;
+            animation: falling linear infinite;
+        }
+        
+        @keyframes falling {
+            0% {
+                transform: translateY(-50px) rotate(10deg);
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(10deg);
+                opacity: 0;
+            }
+        }
+
+        #gameCanvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            pointer-events: none;
+        }
+        #distance {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            pointer-events: none;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+        #stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            pointer-events: none;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+        #weather {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            pointer-events: none;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+        #timer {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            pointer-events: none;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+        }
+        #audioControls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        /* 游戏介绍按钮样式 */
+        #helpButton {
+            position: absolute;
+            top: 20px;
+            right: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        /* 新增的气候变化按钮样式 */
+        #climateButton {
+            position: absolute;
+            top: 20px;
+            right: 220px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 100;
+            transition: all 0.3s;
+        }
+        
+        #helpButton:hover, #climateButton:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* 游戏介绍弹窗样式 */
+        #helpModal, #climateModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #helpContent, #climateContent {
+            background: rgba(30, 60, 90, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 80%;
+            color: white;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        #closeHelp, #closeClimate {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        #helpContent h2, #climateContent h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #ffcc00;
+        }
+        
+        #helpContent ul, #climateContent ul {
+            padding-left: 20px;
+        }
+        
+        #helpContent li, #climateContent li {
+            margin-bottom: 10px;
+        }
+        
+        #climateContent p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="info">点击/触摸屏幕扇动翅膀</div>
+    <div id="distance">0 公里</div>
+    <div id="stats">生命: 3 | 体能: 100%</div>
+    <div id="weather">天气: 晴朗</div>
+    <div id="timer">时间: 60秒</div>
+<!--     <div id="audioControls">
+        <button id="muteButton">静音</button>
+    </div> -->
+    
+    <!-- 新增的气候变化按钮 -->
+    <button id="climateButton">气候变化与候鸟</button>
+    
+    <!-- 新增的游戏介绍按钮 -->
+    <button id="helpButton">游戏说明</button>
+    
+    <!-- 游戏介绍弹窗 -->
+    <div id="helpModal">
+        <div id="helpContent">
+            <button id="closeHelp">&times;</button>
+            <h2>游戏玩法说明</h2>
+            <p>欢迎来到《羽途》候鸟迁徙游戏！</p>
+            <ul>
+                <li><strong>控制方式</strong>: 点击或触摸屏幕控制鸟群飞行方向</li>
+                <li><strong>目标</strong>: 尽可能飞得更远，躲避危险，收集小鱼补充能量</li>
+                <li><strong>生命值</strong>: 初始有3点生命，被子弹击中或撞到高楼会减少</li>
+                <li><strong>能量</strong>: 飞行会消耗能量，收集小鱼可以补充</li>
+                <li><strong>天气系统</strong>: 不同天气会影响飞行速度和能量消耗</li>
+                <li><strong>安全时间</strong>: 游戏开始前20秒不会有子弹和高楼出现</li>
+                <li><strong>时间限制</strong>: 每次游戏有60秒时间，尽可能飞得更远</li>
+            </ul>
+            <p>祝您游戏愉快！</p>
+        </div>
+    </div>
+    
+    <!-- 新增的气候变化弹窗 -->
+    <div id="climateModal">
+        <div id="climateContent">
+            <button id="closeClimate">&times;</button>
+            <h2>气候变化对候鸟的影响</h2>
+            <p>候鸟是地球上最令人惊叹的迁徙者之一，它们每年都要飞行数千公里往返于繁殖地和越冬地。然而，气候变化正在对这些勇敢的旅行者产生深远影响：</p>
+            
+            <h3>1. 迁徙时间改变</h3>
+            <p>随着全球气温升高，许多候鸟开始提前开始春季迁徙，或推迟秋季迁徙。这种时间错位可能导致它们错过最佳繁殖时机或食物资源高峰期。</p>
+            
+            <h3>2. 栖息地丧失</h3>
+            <p>海平面上升和极端天气事件正在破坏沿海湿地等重要停歇地。例如，东亚-澳大利西亚迁飞路线上的许多湿地正面临消失威胁，直接影响数百万只水鸟的生存。</p>
+            
+            <h3>3. 食物链断裂</h3>
+            <p>气候变暖导致昆虫孵化时间改变，可能使雏鸟孵化期与昆虫高峰期错开。研究表明，一些鸟类种群因雏鸟食物不足而数量下降。</p>
+            
+            <h3>4. 迁徙路线变化</h3>
+            <p>一些鸟类正在缩短迁徙距离或完全放弃迁徙。例如，部分白鹳种群现在选择在欧洲越冬而非飞往非洲。</p>
+            
+            <h3>5. 极端天气威胁</h3>
+            <p>更频繁的暴风雨和干旱增加了迁徙途中的死亡率。2019年研究显示，春季迁徙期间遭遇恶劣天气的鸟类死亡率显著上升。</p>
+            
+            <h3>我们能做什么？</h3>
+            <ul>
+                <li>减少碳足迹，支持可再生能源</li>
+                <li>保护湿地和重要鸟类栖息地</li>
+                <li>参与公民科学项目，监测鸟类种群</li>
+                <li>支持环保组织和鸟类保护项目</li>
+            </ul>
+            
+            <p>通过这个游戏，我们希望唤起大家对候鸟保护和气候变化的关注。每一只成功迁徙的候鸟，都是自然奇迹的见证。</p>
+        </div>
+    </div>
+
+    <div class="rain" id="rain" style="display: none;"></div>
+
+    <!-- 音效预加载 -->
+    <audio id="rainSound" loop preload="auto">
+        <source src="rain.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="windSound" loop preload="auto">
+        <source src="wind.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="sunnySound" loop preload="auto">
+        <source src="birdSound.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wingFlapSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-bird-flapping-wings-1931.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="fishCollectSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="bulletHitSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-explosion-impact-1684.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="buildingHitSound" preload="auto">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-ominous-drums-227.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+                // 在游戏状态变量附近添加
+        let lastPowerLineSpawn = 0;
+        const powerLineSpawnInterval = 5000; // 高压线生成间隔
+        const POWER_LINE_DELAY = 15000; // 高压线比子弹晚15秒出现
+        const powerLines = []; // 存储高压线的数组
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const info = document.getElementById('info');
+        const distanceDisplay = document.getElementById('distance');
+        const statsDisplay = document.getElementById('stats');
+        const weatherDisplay = document.getElementById('weather');
+        const timerDisplay = document.getElementById('timer');
+        const muteButton = document.getElementById('muteButton');
+        const helpButton = document.getElementById('helpButton');
+        const climateButton = document.getElementById('climateButton');
+        const helpModal = document.getElementById('helpModal');
+        const climateModal = document.getElementById('climateModal');
+        const closeHelp = document.getElementById('closeHelp');
+        const closeClimate = document.getElementById('closeClimate');
+        
+        const rainContainer = document.getElementById('rain');
+        const dropsCount = 10;
+ 
+
+        // 音频元素
+        const rainSound = document.getElementById('rainSound');
+        const windSound = document.getElementById('windSound');
+        const sunnySound = document.getElementById('sunnySound');
+        const wingFlapSound = document.getElementById('wingFlapSound');
+        const fishCollectSound = document.getElementById('fishCollectSound');
+        const bulletHitSound = document.getElementById('bulletHitSound');
+        const buildingHitSound = document.getElementById('buildingHitSound');
+        
+        // 设置画布大小为窗口大小
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 游戏状态
+        let gameStarted = false;
+        let distance = 0;
+        let lastTime = 0;
+        let flightPower = 0;
+        let isFlapping = false;
+        let health = 3;
+        let energy = 100;
+        let lastFishSpawn = 0;
+        let lastBulletSpawn = 0;
+        let lastBuildingSpawn = 0;
+        let lastWeatherChange = 0;
+        let gameTimeLeft = 60; // 60秒游戏时间
+        let gameStartTime = 0; // 游戏开始时间
+        let isMuted = false; // 是否静音
+        
+        // 天气系统
+        const WEATHER_TYPES = {
+            SUNNY: { name: '晴朗', speedModifier: 0.6, color: 'rgba(100, 149, 237, 0.9)', sound: sunnySound },
+            WINDY: { name: '大风', speedModifier: 0.3, color: 'rgba(200, 230, 255, 0.6)', sound: windSound },
+            RAINY: { name: '雨天', speedModifier: 0.3, color: 'rgba(150, 180, 220, 0.7)', sound: rainSound }
+        };
+        let currentWeather = WEATHER_TYPES.SUNNY;
+        let weatherDuration = 0;
+        let weatherParticles = [];
+        
+        // 鼠标/触摸点位置
+        let targetX = canvas.width * 0.3;
+        let targetY = canvas.height * 0.5;
+        
+        // 游戏元素
+        const bgMountains = [];
+        const bgClouds = [];
+        const flock = [];
+        const fishes = [];
+        const bullets = [];
+        const buildings = []; // 新增高楼建筑数组
+        
+        // 游戏参数
+        const flockSize = 15;
+        const leaderIndex = 0;
+        const fishSpawnInterval = 3000; // 毫秒
+        const bulletSpawnInterval = 2000; // 毫秒
+        const buildingSpawnInterval = 4000; // 毫秒
+        const weatherChangeInterval = 15000; // 毫秒
+        const GAME_DURATION = 90; // 60秒游戏时间
+        const SAFE_TIME = 20000; // 20秒安全时间（毫秒）
+        const BUILDING_DELAY = 10000; // 高楼比子弹晚10秒出现
+        
+        // 初始化背景元素
+        function initBackground() {
+            // 创建远山
+            for (let i = 0; i < 5; i++) {
+                bgMountains.push({
+                    x: Math.random() * canvas.width,
+                    y: canvas.height * 0.7,
+                    width: canvas.width * 0.3 + Math.random() * canvas.width * 0.2,
+                    height: canvas.height * 0.2 + Math.random() * canvas.height * 0.1,
+                    speed: 0.2 + Math.random() * 0.3
+                });
+            }
+            
+            // 创建云朵
+            for (let i = 0; i < 8; i++) {
+                bgClouds.push({
+                    x: Math.random() * canvas.width * 2,
+                    y: Math.random() * canvas.height * 0.6,
+                    width: 100 + Math.random() * 150,
+                    opacity: 0.3 + Math.random() * 0.4,
+                    speed: 0.1 + Math.random() * 0.3
+                });
+            }
+        }
+
+function createRain() {
+    for (let i = 0; i < dropsCount; i++) {
+        const drop = document.createElement('div');
+        drop.classList.add('drop');
+        
+        // 随机位置
+        const left = Math.random() * 100;
+        const top = Math.random() * -100;
+        
+        // 随机动画时长和延迟
+        const duration = 0.8 + Math.random() * 1.2; // 调整下落速度范围
+        const delay = Math.random() * 2;
+        
+        // 随机雨滴长度
+        const height = 8 + Math.random() * 8; // 减小雨滴长度范围
+        
+        drop.style.left = `${left}%`;
+        drop.style.top = `${top}px`;
+        drop.style.height = `${height}px`;
+        drop.style.animationDuration = `${duration}s`;
+        drop.style.animationDelay = `${delay}s`;
+        
+        rainContainer.appendChild(drop);
+    }
+}
+        
+        // 初始化鸟群
+        function initFlock() {
+            flock.length = 0; // 清空现有鸟群
+            for (let i = 0; i < flockSize; i++) {
+                flock.push({
+                    x: canvas.width * 0.3 - i * 15,
+                    y: canvas.height * 0.5 + (i % 3) * 10 - 15,
+                    vy: 0,
+                    targetY: canvas.height * 0.5,
+                    size: 12 - (i / flockSize) * 4,
+                    opacity: 0.7 + (i / flockSize) * 0.3,
+                    trail: []
+                });
+            }
+        }
+        
+        // 生成随机小鱼
+        function spawnFish() {
+            fishes.push({
+                x: canvas.width,
+                y: canvas.height * 0.3 + Math.random() * canvas.height * 0.4,
+                width: 20 + Math.random() * 10,
+                speed: 1 + Math.random() * 1.5,
+                collected: false
+            });
+        }
+        
+        // 生成随机子弹
+        function spawnBullet() {
+            // 检查是否在安全时间内
+            if (Date.now() - gameStartTime < SAFE_TIME) {
+                return; // 安全时间内不生成子弹
+            }
+            
+            bullets.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height,
+                width: 5,
+                height: 15,
+                speed: 2 + Math.random() * 2,
+                hit: false
+            });
+        }
+        
+
+
+
+        // 生成随机高楼建筑
+        function spawnBuilding() {
+            // 检查是否在安全时间内，并且比子弹晚10秒出现
+            if (Date.now() - gameStartTime < SAFE_TIME + BUILDING_DELAY) {
+                return;
+            }
+            
+            const width = 40 + Math.random() * 60;
+            const height = canvas.height * (0.3 + Math.random() * 0.3);
+            const gap = 150 + Math.random() * 100; // 两栋楼之间的间隔
+            
+            // 左侧高楼
+            buildings.push({
+                x: canvas.width,
+                y: canvas.height - height,
+                width: width,
+                height: height,
+                speed: 1 + Math.random() * 0.5,
+                hit: false
+            });
+            
+            // 右侧高楼（与左侧形成通道）
+            buildings.push({
+                x: canvas.width + width + gap,
+                y: canvas.height - (height * (0.7 + Math.random() * 0.3)),
+                width: width,
+                height: height * (0.7 + Math.random() * 0.3),
+                speed: 1 + Math.random() * 0.5,
+                hit: false
+            });
+        }
+        
+        // 初始化天气粒子
+        function initWeatherParticles() {
+            weatherParticles = [];
+            const particleCount = currentWeather === WEATHER_TYPES.RAINY ? 100 : 
+                                 currentWeather === WEATHER_TYPES.WINDY ? 50 : 0;
+            
+            for (let i = 0; i < particleCount; i++) {
+                weatherParticles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    speedX: currentWeather === WEATHER_TYPES.RAINY ? 0 : (Math.random() - 0.5) * 3,
+                    speedY: currentWeather === WEATHER_TYPES.RAINY ? 5 + Math.random() * 3 : (Math.random() - 0.5) * 2,
+                    size: currentWeather === WEATHER_TYPES.RAINY ? 1 + Math.random() * 2 : 2 + Math.random() * 3,
+                    life: 100 + Math.random() * 100
+                });
+            }
+        }
+        
+        // 改变天气
+        function changeWeather() {
+            const weatherKeys = Object.keys(WEATHER_TYPES);
+            let newWeatherKey;
+            do {
+                newWeatherKey = weatherKeys[Math.floor(Math.random() * weatherKeys.length)];
+            } while (newWeatherKey === currentWeather.name && weatherKeys.length > 1);
+            
+            // 停止当前天气音效
+            currentWeather.sound.pause();
+            
+            currentWeather = WEATHER_TYPES[newWeatherKey];
+            weatherDuration = 10000 + Math.random() * 10000; // 10-20秒
+            weatherDisplay.textContent = `天气: ${currentWeather.name}`;
+            initWeatherParticles();
+            
+            // 播放新天气音效
+            if (!isMuted) {
+                currentWeather.sound.currentTime = 0;
+                currentWeather.sound.play().catch(e => console.log("Audio play failed:", e));
+            }
+        }
+        
+        // 更新天气粒子
+        function updateWeatherParticles(deltaTime) {
+            for (let i = weatherParticles.length - 1; i >= 0; i--) {
+                const p = weatherParticles[i];
+                p.x += p.speedX;
+                p.y += p.speedY;
+                p.life -= deltaTime;
+                
+                // 重置离开屏幕的粒子
+                if (p.y > canvas.height || p.x < 0 || p.x > canvas.width || p.life <= 0) {
+                    p.x = Math.random() * canvas.width;
+                    p.y = currentWeather === WEATHER_TYPES.RAINY ? -10 : Math.random() * canvas.height;
+                    p.life = 100 + Math.random() * 100;
+                }
+            }
+        }
+        
+        // 切换静音状态
+        function toggleMute() {
+            isMuted = !isMuted;
+            muteButton.textContent = isMuted ? "取消静音" : "静音";
+            
+            if (isMuted) {
+                // 暂停所有音效
+                rainSound.pause();
+                windSound.pause();
+                sunnySound.pause();
+                wingFlapSound.pause();
+                fishCollectSound.pause();
+                bulletHitSound.pause();
+                buildingHitSound.pause();
+            } else {
+                // 恢复当前天气音效
+                currentWeather.sound.currentTime = 0;
+                currentWeather.sound.play().catch(e => console.log("Audio play failed:", e));
+            }
+        }
+        
+        // 绘制天气效果
+        function drawWeather() {
+            if (currentWeather === WEATHER_TYPES.SUNNY) return;
+            
+            ctx.save();
+            weatherParticles.forEach(p => {
+                ctx.fillStyle = currentWeather.color;
+                if (currentWeather === WEATHER_TYPES.RAINY) {
+         // 初始创建雨滴
+
+        // const raindiv = document.getElementById('rain');
+        // raindiv.style.display = 'block';
+
+        // createRain();
+
+
+ctx.save();
+ctx.translate(p.x, p.y);
+ctx.rotate(Math.atan2(p.speedY, p.speedX)); // 沿速度方向旋转（虽然圆形旋转后看起来一样）
+
+ctx.beginPath();
+ctx.arc(0, 0, p.size, 0, Math.PI * 2); // 绘制圆形
+ctx.closePath();
+
+ctx.fillStyle = "rgba(200, 240, 255, 0.6)";
+ctx.fill();
+ctx.restore();
+                } else {
+                    // 绘制风粒子
+                    // ctx.save();  
+                    // ctx.translate(p.x, p.y);  
+                    // ctx.rotate(Math.atan2(p.speedY, p.speedX)); // 沿速度方向旋转  
+
+                    // ctx.beginPath();  
+                    // ctx.moveTo(0, 0);  
+                    // ctx.lineTo(-p.size * 3, -p.size); // 向左上方延伸  
+                    // ctx.lineTo(-p.size * 2, 0); // 回缩一点  
+                    // ctx.lineTo(-p.size * 3, p.size); // 向左下方延伸  
+                    // ctx.closePath();  
+
+                    // ctx.fillStyle = "rgba(200, 240, 255, 0.6)";  
+                    // ctx.fill();  
+                    // ctx.restore();  
+
+                    ctx.save();
+ctx.translate(p.x, p.y);
+ctx.rotate(Math.atan2(p.speedY, p.speedX)); // 沿速度方向旋转（虽然圆形旋转后看起来一样）
+
+ctx.beginPath();
+ctx.arc(0, 0, p.size, 0, Math.PI * 2); // 绘制圆形
+ctx.closePath();
+
+ctx.fillStyle = "rgba(200, 240, 255, 0.6)";
+ctx.fill();
+ctx.restore();
+                }
+            });
+            ctx.restore();
+            
+            // 如果是雨天，添加一层半透明灰色层
+            // if (currentWeather === WEATHER_TYPES.RAINY) {
+            //     ctx.fillStyle = 'rgba(50, 70, 100, 0.1)';
+            //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // }
+        }
+        
+        // 绘制水墨风格远山
+function drawMountains() {
+    ctx.save();
+    bgMountains.forEach(mountain => {
+        // 设置山脉y坐标为画布底部减去山脉高度
+        const mountainBottomY = canvas.height - mountain.height;
+        
+        // 渐变填充
+        const gradient = ctx.createLinearGradient(
+            mountain.x, mountainBottomY, 
+            mountain.x, mountainBottomY + mountain.height
+        );
+        gradient.addColorStop(0, 'rgba(130, 160, 200, 0.2)');
+        gradient.addColorStop(1, 'rgba(90, 130, 180, 0.4)');
+        
+        // 绘制山脉路径
+        ctx.beginPath();
+        ctx.moveTo(mountain.x, mountainBottomY + mountain.height); // 从底部开始
+        ctx.lineTo(mountain.x + mountain.width * 0.2, mountainBottomY + mountain.height * 0.7); // 调整为从底部计算
+        ctx.lineTo(mountain.x + mountain.width * 0.4, mountainBottomY + mountain.height * 0.6);
+        ctx.lineTo(mountain.x + mountain.width * 0.6, mountainBottomY + mountain.height * 0.65);
+        ctx.lineTo(mountain.x + mountain.width * 0.8, mountainBottomY + mountain.height * 0.75);
+        ctx.lineTo(mountain.x + mountain.width, mountainBottomY + mountain.height); // 结束于底部
+        ctx.closePath();
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        // 水墨描边
+        ctx.strokeStyle = 'rgba(80, 110, 150, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+        
+        // 绘制云朵
+        function drawClouds() {
+            ctx.save();
+            bgClouds.forEach(cloud => {
+                ctx.beginPath();
+                
+                // 创建不规则的云朵形状
+                const segments = 8;
+                const centerX = cloud.x + cloud.width / 2;
+                const centerY = cloud.y;
+                
+                ctx.moveTo(cloud.x, cloud.y);
+                
+                for (let i = 1; i <= segments; i++) {
+                    const angle = (i / segments) * Math.PI;
+                    const radius = cloud.width / 2 * (0.7 + Math.random() * 0.3);
+                    const x = centerX + Math.cos(angle) * radius;
+                    const y = centerY + Math.sin(angle) * radius * 0.5;
+                    ctx.lineTo(x, y);
+                }
+                
+                ctx.closePath();
+                
+                // 渐变填充
+                const gradient = ctx.createRadialGradient(
+                    centerX, centerY, 0,
+                    centerX, centerY, cloud.width / 2
+                );
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${cloud.opacity})`);
+                gradient.addColorStop(1, `rgba(255, 255, 255, ${cloud.opacity * 0.3})`);
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+            });
+            ctx.restore();
+        }
+        
+        // 绘制一只鸟（水墨风格）
+        function drawBird(x, y, size, opacity, rotation) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(rotation);
+            
+            // 翅膀扇动动画参数
+            const wingPhase = Date.now() * 0.003;
+            const wingAngle = Math.sin(wingPhase) * 0.5;
+            const wingSpread = 1 + Math.abs(Math.sin(wingPhase * 1.3)) * 0.3;
+
+            // 身体 - 更明显的白色轮廓
+            ctx.beginPath();
+            ctx.moveTo(size * 0.3, 0);
+            ctx.bezierCurveTo(
+                size * 0.5, -size * 0.3,
+                size * 0.8, -size * 0.15,
+                size * 1.1, -size * 0.1
+            );
+            ctx.bezierCurveTo(
+                size * 0.9, size * 0.15,
+                size * 0.6, size * 0.3,
+                size * 0.3, 0
+            );
+            ctx.fillStyle = `rgba(255, 255, 255, ${opacity * 0.7})`; // Increased opacity
+            ctx.fill();
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(opacity * 0.9, 1)})`; // Brighter stroke
+            ctx.lineWidth = size * 0.05; // Thicker line
+            ctx.stroke();
+
+            // 头部 - 更亮的白色
+            ctx.beginPath();
+            ctx.arc(size * 1.15, -size * 0.15, size * 0.12, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(opacity * 0.9, 1)})`;
+            ctx.fill();
+
+            // 喙 - 更粗更明显的线条
+            ctx.beginPath();
+            ctx.moveTo(size * 1.25, -size * 0.15);
+            ctx.lineTo(size * 1.4, -size * 0.1);
+            ctx.lineWidth = size * 0.025; // Thicker
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(opacity * 0.9, 1)})`;
+            ctx.stroke();
+
+            // 翅膀 - 增强白色效果
+            ctx.save();
+            ctx.rotate(wingAngle);
+            
+            // 主翼（更明显的白色）
+            for (let i = 0; i < 3; i++) {
+                const layerSize = size * (1 - i * 0.1);
+                const layerOpacity = opacity * (0.9 - i * 0.2); // Increased opacity
+                
+                ctx.beginPath();
+                ctx.moveTo(size * 0.4, 0);
+                ctx.bezierCurveTo(
+                    size * 0.6, -size * 0.7 * wingSpread,
+                    size * 0.2, -size * 1.0 * wingSpread,
+                    -size * 0.2, -size * 0.5 * wingSpread
+                );
+                ctx.bezierCurveTo(
+                    size * 0.1, -size * 0.8 * wingSpread,
+                    size * 0.5, -size * 0.6 * wingSpread,
+                    size * 0.4, 0
+                );
+                ctx.fillStyle = `rgba(255, 255, 255, ${layerOpacity * 0.5})`; // More visible
+                ctx.fill();
+                ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(layerOpacity * 0.9, 1)})`;
+                ctx.lineWidth = size * 0.04; // Thicker
+                ctx.stroke();
+            }
+            
+            // 飞羽细节（更明显的白色羽毛）
+            for (let i = 0; i < 5; i++) {
+                const yPos = -size * (0.2 + i * 0.15) * wingSpread;
+                ctx.beginPath();
+                ctx.moveTo(size * (0.5 - i * 0.05), yPos * 0.3);
+                ctx.quadraticCurveTo(
+                    size * (0.3 - i * 0.03), yPos * 0.7,
+                    -size * (0.1 - i * 0.02), yPos
+                );
+                ctx.lineWidth = size * (0.05 - i * 0.007); // Thicker
+                ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(opacity * (0.9 - i * 0.1), 1)})`;
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 尾羽 - 更明显的白色
+            const tailSway = Math.sin(wingPhase * 0.7) * 0.1;
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.1, 0);
+            ctx.quadraticCurveTo(
+                -size * 0.3, -size * (0.3 + tailSway),
+                -size * 0.5, -size * (0.4 + tailSway)
+            );
+            ctx.moveTo(-size * 0.15, 0);
+            ctx.lineTo(-size * 0.5, 0);
+            ctx.moveTo(-size * 0.1, 0);
+            ctx.quadraticCurveTo(
+                -size * 0.3, size * (0.3 - tailSway),
+                -size * 0.5, size * (0.4 - tailSway)
+            );
+            ctx.lineWidth = size * 0.04; // Thicker
+            ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(opacity * 0.9, 1)})`;
+            ctx.stroke();
+
+            // 眼睛 - 更亮的白点
+            ctx.beginPath();
+            ctx.arc(size * 1.18, -size * 0.18, size * 0.02, 0, Math.PI * 2); // Larger
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(opacity * 1.1, 1)})`; // Brighter
+            ctx.fill();
+
+            // 增强水墨晕染特效
+            if (opacity > 0.4) { // Lower threshold for visibility
+                // 更亮的身体光晕
+                ctx.beginPath();
+                ctx.arc(size * 0.7, 0, size * 0.3, 0, Math.PI * 2); // Larger
+                const bodyGlow = ctx.createRadialGradient(
+                    size * 0.7, 0, 0,
+                    size * 0.7, 0, size * 0.3
+                );
+                bodyGlow.addColorStop(0, `rgba(255, 255, 255, ${opacity * 0.4})`); // Brighter
+                bodyGlow.addColorStop(1, `rgba(255, 255, 255, 0)`);
+                ctx.fillStyle = bodyGlow;
+                ctx.fill();
+
+                // 更亮的翅膀尖端光点
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        size * (-0.1 + i * 0.05), 
+                        -size * (0.5 + i * 0.1) * wingSpread, 
+                        size * 0.03, // Larger
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity * (0.7 - i * 0.15)})`; // Brighter
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+        }
+        
+        // 绘制小鱼
+        function drawFish(x, y, width) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // 鱼身
+            ctx.beginPath();
+            ctx.ellipse(0, 0, width * 0.5, width * 0.3, 0, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 150, 50, 0.8)';
+            ctx.fill();
+            
+            // 鱼尾
+            ctx.beginPath();
+            ctx.moveTo(width * 0.5, 0);
+            ctx.lineTo(width * 0.8, -width * 0.3);
+            ctx.lineTo(width * 0.8, width * 0.3);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 100, 30, 0.8)';
+            ctx.fill();
+            
+            // 鱼眼
+            ctx.beginPath();
+            ctx.arc(-width * 0.2, -width * 0.1, width * 0.08, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        // 绘制子弹
+        function drawBullet(x, y, width, height) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // 子弹主体
+            ctx.fillStyle = 'rgba(255, 50, 50, 0.8)';
+            ctx.fillRect(-width/2, -height, width, height);
+            
+            // 子弹尖端
+            ctx.beginPath();
+            ctx.moveTo(-width/2, -height);
+            ctx.lineTo(width/2, -height);
+            ctx.lineTo(0, -height * 1.5);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+        
+        // 绘制高楼建筑
+        function drawBuilding(x, y, width, height) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // 建筑主体
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(100, 120, 150, 0.8)');
+            gradient.addColorStop(1, 'rgba(60, 80, 110, 0.9)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // 建筑轮廓
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, width, height);
+            
+            // 窗户
+            const windowRows = Math.floor(height / 30);
+            const windowCols = Math.floor(width / 20);
+            const windowSize = 8;
+            const windowPadding = 5;
+            
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.6)';
+            for (let row = 0; row < windowRows; row++) {
+                for (let col = 0; col < windowCols; col++) {
+                    // 随机点亮一些窗户
+                    if (Math.random() > 0.3) {
+                        ctx.fillRect(
+                            col * (windowSize + windowPadding) + windowPadding,
+                            row * (windowSize + windowPadding) + windowPadding,
+                            windowSize,
+                            windowSize
+                        );
+                    }
+                }
+            }
+            
+            ctx.restore();
+        }
+        
+        // 绘制鸟群
+        function drawFlock() {
+            flock.forEach((bird, index) => {
+                // 绘制飞行轨迹（尾迹）
+                if (bird.trail.length > 0) {
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.globalAlpha = 0.3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(bird.trail[0].x, bird.trail[0].y);
+                    
+                    for (let i = 1; i < bird.trail.length; i++) {
+                        ctx.lineTo(bird.trail[i].x, bird.trail[i].y);
+                    }
+                    
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = bird.size * 0.5;
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+                
+                // 绘制鸟
+                const rotation = Math.atan2(bird.vy, 10) * 0.3;
+                drawBird(bird.x, bird.y, bird.size, bird.opacity, rotation);
+                
+                // 更新尾迹
+                bird.trail.push({ x: bird.x, y: bird.y });
+                if (bird.trail.length > 10) {
+                    bird.trail.shift();
+                }
+            });
+        }
+        
+        // 绘制太阳/月亮
+        function drawSun() {
+            const timeOfDay = (distance % 2000) / 2000; // 模拟日夜循环
+            const isDay = timeOfDay < 0.5;
+            const sunPos = isDay ? timeOfDay * 2 : (timeOfDay - 0.5) * 2;
+            
+            const sunX = canvas.width * sunPos;
+            const sunY = canvas.height * 0.2 - Math.abs(sunPos - 0.5) * canvas.height * 0.4;
+            
+            ctx.save();
+            
+            // 光晕
+            const gradient = ctx.createRadialGradient(
+                sunX, sunY, 0,
+                sunX, sunY, isDay ? 100 : 60
+            );
+            
+            if (isDay) {
+                // gradient.addColorStop(0, 'rgba(255, 255, 200, 0.8)');
+                // gradient.addColorStop(0.7, 'rgba(255, 220, 150, 0.3)');
+                // gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+
+                ctx.fillStyle = '#7ca2cd'; // 修改这里，使用更深的蓝色
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                gradient.addColorStop(0, 'rgba(220, 230, 255, 0.6)');
+                gradient.addColorStop(0.7, 'rgba(200, 210, 240, 0.2)');
+                gradient.addColorStop(1, 'rgba(180, 190, 220, 0)');
+            }
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, isDay ? 100 : 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 太阳/月亮本体
+            ctx.fillStyle = isDay ? 'rgba(255, 240, 180, 0.9)' : 'rgba(230, 240, 255, 0.8)';
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, isDay ? 25 : 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            if (!isDay) {
+                // 月亮纹理
+                ctx.fillStyle = 'rgba(200, 210, 230, 0.6)';
+                ctx.beginPath();
+                ctx.arc(sunX - 8, sunY - 5, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
+        
+        // 更新游戏状态
+        function update(deltaTime) {
+            if (!gameStarted) return;
+            
+            // 更新距离
+            distance += deltaTime * 0.05 * currentWeather.speedModifier;
+            distanceDisplay.textContent = Math.floor(distance) + ' 公里';
+            
+            // 更新状态显示
+            statsDisplay.textContent = `生命: ${health} | 体能: ${Math.floor(energy)}%`;
+            
+            // 更新时间
+            gameTimeLeft -= deltaTime / 1000;
+            timerDisplay.textContent = `时间: ${Math.max(0, Math.ceil(gameTimeLeft))}秒`;
+            
+            // 检查时间是否结束
+            if (gameTimeLeft <= 0) {
+                gameOver();
+                return;
+            }
+            
+            // 更新天气
+            if (Date.now() - lastWeatherChange > weatherChangeInterval) {
+                changeWeather();
+                lastWeatherChange = Date.now();
+            }
+            
+            // 更新天气粒子
+            updateWeatherParticles(deltaTime);
+            
+            // 更新背景元素
+            bgMountains.forEach(mountain => {
+                mountain.x -= mountain.speed * currentWeather.speedModifier;
+                if (mountain.x + mountain.width < 0) {
+                    mountain.x = canvas.width;
+                    mountain.y = canvas.height * 0.7 + (Math.random() - 0.5) * 50;
+                }
+            });
+            
+            bgClouds.forEach(cloud => {
+                cloud.x -= cloud.speed * currentWeather.speedModifier;
+                if (cloud.x + cloud.width < 0) {
+                    cloud.x = canvas.width + Math.random() * canvas.width;
+                    cloud.y = Math.random() * canvas.height * 0.6;
+                }
+            });
+            
+            // 生成小鱼
+            if (Date.now() - lastFishSpawn > fishSpawnInterval) {
+                spawnFish();
+                lastFishSpawn = Date.now();
+            }
+            
+            // 生成子弹（仅在安全时间过后）
+            if (Date.now() - gameStartTime > SAFE_TIME && Date.now() - lastBulletSpawn > bulletSpawnInterval) {
+                spawnBullet();
+                lastBulletSpawn = Date.now();
+            }
+            
+            // 生成高楼建筑（仅在安全时间过后10秒）
+            if (Date.now() - gameStartTime > SAFE_TIME + BUILDING_DELAY && Date.now() - lastBuildingSpawn > buildingSpawnInterval) {
+                spawnBuilding();
+                lastBuildingSpawn = Date.now();
+            }
+            
+            // 更新小鱼
+            for (let i = fishes.length - 1; i >= 0; i--) {
+                const fish = fishes[i];
+                fish.x -= fish.speed * currentWeather.speedModifier;
+                
+                // 检查是否被收集
+                if (!fish.collected) {
+                    const leader = flock[leaderIndex];
+                    const dx = leader.x - fish.x;
+                    const dy = leader.y - fish.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 30) {
+                        fish.collected = true;
+                        energy = Math.min(energy + 15, 100); // 增加体能
+                        if (!isMuted) {
+                            fishCollectSound.currentTime = 0;
+                            fishCollectSound.play().catch(e => console.log("Audio play failed:", e));
+                        }
+                    }
+                }
+                
+                // 移除屏幕外的小鱼
+                if (fish.x + fish.width < 0 || fish.collected) {
+                    fishes.splice(i, 1);
+                }
+            }
+            
+            // 更新子弹
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.y -= bullet.speed * currentWeather.speedModifier;
+                
+                // 检查是否击中鸟群
+                if (!bullet.hit) {
+                    for (const bird of flock) {
+                        const dx = bird.x - bullet.x;
+                        const dy = bird.y - bullet.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance < 20) {
+                            bullet.hit = true;
+                            health--;
+                            if (!isMuted) {
+                                bulletHitSound.currentTime = 0;
+                                bulletHitSound.play().catch(e => console.log("Audio play failed:", e));
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                // 移除屏幕外的子弹
+                if (bullet.y + bullet.height < 0 || bullet.hit) {
+                    bullets.splice(i, 1);
+                }
+            }
+            
+            // 更新高楼建筑
+            for (let i = buildings.length - 1; i >= 0; i--) {
+                const building = buildings[i];
+                building.x -= building.speed * currentWeather.speedModifier;
+                
+                // 检查是否与鸟群碰撞
+                if (!building.hit) {
+                    for (const bird of flock) {
+                        // 简单的矩形碰撞检测
+                        if (bird.x + bird.size > building.x && 
+                            bird.x - bird.size < building.x + building.width &&
+                            bird.y + bird.size > canvas.height - building.height) {
+                            
+                            building.hit = true;
+                            health--;
+                            if (!isMuted) {
+                                buildingHitSound.currentTime = 0;
+                                buildingHitSound.play().catch(e => console.log("Audio play failed:", e));
+                            }
+                            break;
+                        }
+                    }
+                }
+                
+                // 移除屏幕外的建筑
+                if (building.x + building.width < 0 || building.hit) {
+                    buildings.splice(i, 1);
+                }
+            }
+            
+            // 更新鸟群
+            const leader = flock[leaderIndex];
+            
+            // 领导鸟的飞行逻辑 - 现在跟随鼠标/触摸点
+            if (isFlapping) {
+                flightPower = Math.min(flightPower + deltaTime * 0.002, 0.1);
+                energy = Math.max(energy - deltaTime * 0.001 * (currentWeather === WEATHER_TYPES.RAINY ? 1.5 : 1), 0); // 雨天消耗更多体能
+                
+                // 播放翅膀扇动音效（每隔一定时间播放一次）
+                if (Date.now() % 300 < deltaTime && !isMuted) {
+                    wingFlapSound.currentTime = 0;
+                    wingFlapSound.play().catch(e => console.log("Audio play failed:", e));
+                }
+            } else {
+                flightPower = Math.max(flightPower - deltaTime * 0.001, 0);
+            }
+            
+            // 计算领导鸟到目标点的方向
+            const dx = targetX - leader.x;
+            const dy = targetY - leader.y;
+            const distanceToTarget = Math.sqrt(dx * dx + dy * dy);
+            
+            // 如果距离目标点足够近，就应用重力
+            if (distanceToTarget < 10) {
+                leader.vy += 0.05; // 重力
+            } else {
+                // 否则向目标点移动
+
+                const speed = (2 + flightPower * 20 * (energy / 100)) * currentWeather.speedModifier;
+
+
+
+                const directionX = dx / distanceToTarget;
+                const directionY = dy / distanceToTarget;
+                
+                leader.x += directionX * speed;
+                leader.y += directionY * speed;
+                leader.vy = directionY * speed;
+            }
+            
+            // 限制领导鸟的垂直位置
+            leader.y = Math.max(canvas.height * 0.2, Math.min(canvas.height * 0.8, leader.y));
+            
+            // 其他鸟跟随领导鸟（形成V字形）
+            for (let i = 0; i < flock.length; i++) {
+                if (i === leaderIndex) continue;
+                
+                const bird = flock[i];
+                const angle = i < flock.length / 2 ? -0.3 : 0.3;
+                const offsetX = Math.abs(i - leaderIndex) * 15;
+                const offsetY = (i - leaderIndex) * 10;
+                
+                // 目标位置形成V字形
+                const targetX = leader.x - offsetX;
+                const targetY = leader.y + offsetY * (i % 2 === 0 ? 1 : -1);
+                
+                // 平滑跟随
+                bird.x += (targetX - bird.x) * 0.1;
+                bird.y += (targetY - bird.y) * 0.05;
+            }
+            
+            // 检查游戏结束条件
+            if (leader.y > canvas.height * 0.85 || health <= 0) {
+                gameOver();
+            }
+        }
+
+        // 绘制游戏
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制渐变天空背景
+            const timeOfDay = (distance % 2000) / 2000;
+            const isDay = timeOfDay < 0.5;
+            
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            
+            if (isDay) {
+                const dayProgress = timeOfDay * 2;
+                // skyGradient.addColorStop(0, `hsl(210, 80%, ${80 - dayProgress * 30}%)`);
+                // skyGradient.addColorStop(1, `hsl(210, 30%, ${70 - dayProgress * 20}%)`);
+                ctx.fillStyle = '#a8d8ff'; // 或者使用 rgba(168, 216, 255, 1)
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                const nightProgress = (timeOfDay - 0.5) * 2;
+                skyGradient.addColorStop(0, `hsl(240, 60%, ${30 + nightProgress * 10}%)`);
+                skyGradient.addColorStop(1, `hsl(240, 30%, ${20 + nightProgress * 5}%)`);
+            }
+            
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制太阳/月亮
+            drawSun();
+            
+            // 绘制远山
+            drawMountains();
+            
+            // 绘制云朵
+            // drawClouds();
+            
+            // 绘制天气效果
+            drawWeather();
+            
+            // 绘制高楼建筑
+            buildings.forEach(building => {
+                if (!building.hit) {
+                    drawBuilding(building.x, building.y, building.width, building.height);
+                }
+            });
+            
+            // 绘制小鱼
+            fishes.forEach(fish => {
+                if (!fish.collected) {
+                    drawFish(fish.x, fish.y, fish.width);
+                }
+            });
+            
+            // 绘制子弹
+            bullets.forEach(bullet => {
+                if (!bullet.hit) {
+                    drawBullet(bullet.x, bullet.y, bullet.width, bullet.height);
+                }
+            });
+            
+            // 绘制鸟群
+            drawFlock();
+            
+            // 绘制开始提示
+            if (!gameStarted) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '24px SimSun';
+                ctx.textAlign = 'center';
+                ctx.fillText('点击屏幕开始迁徙', canvas.width / 2, canvas.height / 2);
+            }
+            
+            // 绘制安全时间提示
+            if (gameStarted && Date.now() - gameStartTime < SAFE_TIME) {
+                const remainingTime = Math.ceil((SAFE_TIME - (Date.now() - gameStartTime)) / 1000);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '18px SimSun';
+                ctx.textAlign = 'center';
+                // ctx.fillText(`安全时间剩余: ${remainingTime}秒`, canvas.width / 2, canvas.height * 0.8);
+            }
+        }
+        
+        // 游戏结束
+        function gameOver() {
+            gameStarted = false;
+            // 停止所有音效
+            rainSound.pause();
+            windSound.pause();
+            sunnySound.pause();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.font = '24px SimSun';
+            ctx.textAlign = 'center';
+            ctx.fillText(`迁徙结束，飞行了 ${Math.floor(distance)} 公里`, canvas.width / 2, canvas.height / 2);
+            ctx.font = '18px SimSun';
+            ctx.fillText('点击屏幕重新开始', canvas.width / 2, canvas.height / 2 + 40);
+        }
+        
+        // 重置游戏
+        function resetGame() {
+            gameStarted = true;
+            gameStartTime = Date.now(); // 记录游戏开始时间
+            distance = 0;
+            health = 3;
+            energy = 100;
+            gameTimeLeft = GAME_DURATION;
+            fishes.length = 0;
+            bullets.length = 0;
+            buildings.length = 0; // 清空高楼建筑
+            currentWeather = WEATHER_TYPES.SUNNY;
+            weatherDisplay.textContent = `天气: ${currentWeather.name}`;
+            timerDisplay.textContent = `时间: ${GAME_DURATION}秒`;
+            initFlock();
+            info.style.opacity = '0';
+            
+            // 播放初始天气音效
+            if (!isMuted) {
+                currentWeather.sound.currentTime = 0;
+                currentWeather.sound.play().catch(e => console.log("Audio play failed:", e));
+            }
+        }
+        
+        // 游戏循环
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+            
+            update(deltaTime);
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 事件监听
+        function handleInputStart(e) {
+            if (!gameStarted) {
+                resetGame();
+            }
+            isFlapping = true;
+            
+            // 播放翅膀扇动音效
+            if (!isMuted && gameStarted) {
+                wingFlapSound.currentTime = 0;
+                wingFlapSound.play().catch(e => console.log("Audio play failed:", e));
+            }
+            
+            // 更新目标位置
+            updateTargetPosition(e);
+        }
+        
+        function handleInputEnd() {
+            isFlapping = false;
+        }
+        
+        function handleInputMove(e) {
+            if (isFlapping) {
+                updateTargetPosition(e);
+            }
+        }
+        
+        function updateTargetPosition(e) {
+            // 获取鼠标/触摸位置
+            const rect = canvas.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            targetX = clientX - rect.left;
+            targetY = clientY - rect.top;
+            
+            // 限制目标位置在合理范围内
+            targetX = Math.max(50, Math.min(canvas.width - 50, targetX));
+            targetY = Math.max(canvas.height * 0.2, Math.min(canvas.height * 0.8, targetY));
+        }
+        
+        // 显示游戏帮助
+        function showHelp() {
+            helpModal.style.display = 'flex';
+        }
+        
+        // 隐藏游戏帮助
+        function hideHelp() {
+            helpModal.style.display = 'none';
+        }
+        
+        // 显示气候变化信息
+        function showClimateInfo() {
+            climateModal.style.display = 'flex';
+        }
+        
+        // 隐藏气候变化信息
+        function hideClimateInfo() {
+            climateModal.style.display = 'none';
+        }
+        
+        // 初始化游戏
+        function initGame() {
+            initBackground();
+            initWeatherParticles();
+            
+            // 设置事件监听
+            canvas.addEventListener('mousedown', handleInputStart);
+            canvas.addEventListener('mouseup', handleInputEnd);
+            canvas.addEventListener('mousemove', handleInputMove);
+            
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                handleInputStart(e);
+            });
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                handleInputEnd(e);
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                handleInputMove(e);
+            });
+            
+            // 静音按钮事件
+            // muteButton.addEventListener('click', toggleMute);
+            
+            // 游戏帮助按钮事件
+            helpButton.addEventListener('click', showHelp);
+            closeHelp.addEventListener('click', hideHelp);
+            
+            // 气候变化按钮事件
+            climateButton.addEventListener('click', showClimateInfo);
+            closeClimate.addEventListener('click', hideClimateInfo);
+            
+            // 点击弹窗外部关闭
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) {
+                    hideHelp();
+                }
+            });
+            
+            climateModal.addEventListener('click', (e) => {
+                if (e.target === climateModal) {
+                    hideClimateInfo();
+                }
+            });
+            
+            // 预加载音效
+            rainSound.load();
+            windSound.load();
+            sunnySound.load();
+            wingFlapSound.load();
+            fishCollectSound.load();
+            bulletHitSound.load();
+            buildingHitSound.load();
+            
+            // 开始游戏循环
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // 窗口大小调整
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>

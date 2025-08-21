@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环保单词排列游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #F3E9DE; /* 莫兰迪米白 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+            margin-bottom: 10px;
+        }
+        .level-selector {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .level-btn {
+            padding: 8px 16px;
+            background-color: #A89F94; /* 莫兰迪灰 */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .level-btn:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .level-btn.active {
+            background-color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .custom-level-btn {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+        }
+        .custom-level-btn:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .custom-level-btn.active {
+            background-color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .progress {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+            font-size: 16px;
+        }
+        .word-pool {
+            display: grid;
+            gap: 10px;
+            padding: 20px;
+            background-color: #E5D9CC; /* 莫兰迪浅米 */
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .word-block {
+            background-color: #D1C4B7; /* 莫兰迪米灰 */
+            color: #5A4E42; /* 莫兰迪深褐 */
+            padding: 15px;
+            border-radius: 4px;
+            cursor: grab;
+            user-select: none;
+            font-size: 16px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .word-block.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .word-block.selected {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+            transform: scale(0.95);
+        }
+        .word-block.correct {
+            background-color: #A3B899; /* 莫兰迪灰绿 */
+            color: white;
+            cursor: default;
+        }
+        .word-block.incorrect {
+            background-color: #C4A59E; /* 莫兰迪粉褐 */
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .check-button, .save-button {
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .check-button {
+            background-color: #A3B899; /* 莫兰迪灰绿 */
+        }
+        .check-button:hover {
+            background-color: #8B9D88; /* 莫兰迪深灰绿 */
+        }
+        .check-button:disabled {
+            background-color: #D1C4B7; /* 莫兰迪米灰 */
+            cursor: not-allowed;
+        }
+        .save-button {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+        }
+        .save-button:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 16px;
+            display: none;
+        }
+        .success {
+            background-color: #E5E5D9; /* 莫兰迪浅米绿 */
+            color: #6B5D4D; /* 莫兰迪深褐 */
+            border: 1px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .error {
+            background-color: #E5D9D9; /* 莫兰迪浅粉 */
+            color: #8B6D6B; /* 莫兰迪粉褐 */
+            border: 1px solid #C4A59E; /* 莫兰迪粉褐 */
+        }
+        .custom-config {
+            display: none;
+            background-color: #F3E9DE; /* 莫兰迪米白 */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 500px;
+            border: 1px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .custom-config h3 {
+            margin-top: 0;
+            color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .group-input {
+            margin-bottom: 15px;
+        }
+        .group-input label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .group-input input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #D1C4B7; /* 莫兰迪米灰 */
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #F8F2EB; /* 更浅的米白 */
+        }
+        .group-words {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .word-tag {
+            background-color: #E5D9CC; /* 莫兰迪浅米 */
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            color: #5A4E42; /* 莫兰迪深褐 */
+        }
+        .word-tag button {
+            background: none;
+            border: none;
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+            cursor: pointer;
+            margin-left: 5px;
+            font-size: 12px;
+        }
+        .add-group-btn, .start-custom-btn {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .add-group-btn:hover, .start-custom-btn:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .close-config-btn {
+            background-color: #C4A59E; /* 莫兰迪粉褐 */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .close-config-btn:hover {
+            background-color: #A38B84; /* 莫兰迪深粉褐 */
+        }
+
+          /* 之前的样式保持不变，只添加以下新样式 */
+        .word-explanation {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #F8F2EB;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            max-width: 80%;
+            width: 400px;
+            border: 1px solid #D1C4B7;
+            display: none;
+        }
+        .word-explanation h3 {
+            color: #6B5D4D;
+            margin-top: 0;
+            border-bottom: 1px solid #D1C4B7;
+            padding-bottom: 10px;
+        }
+        .word-explanation p {
+            color: #5A4E42;
+            line-height: 1.6;
+        }
+        .word-explanation button {
+            background-color: #B8A99A;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: background-color 0.3s;
+        }
+        .word-explanation button:hover {
+            background-color: #8B7D6B;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 以下是相同的HTML内容，保持不变 -->
+    <h1>环保单词排列游戏</h1>
+    
+    <div class="level-selector">
+        <button class="level-btn active" data-size="3">3×3 简单</button>
+        <button class="level-btn" data-size="4">4×4 中等</button>
+        <button class="level-btn" data-size="5">5×5 困难</button>
+        <button class="level-btn custom-level-btn" id="customLevelBtn">自定义关卡</button>
+    </div>
+    
+    <div class="custom-config" id="customConfig">
+        <h3>自定义关卡配置</h3>
+        <div id="groupInputs">
+            <!-- 组输入将通过JavaScript动态添加 -->
+        </div>
+        <button class="add-group-btn" id="addGroupBtn">添加单词组</button>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="start-custom-btn" id="startCustomBtn">开始自定义游戏</button>
+            <button class="close-config-btn" id="closeConfigBtn">取消</button>
+        </div>
+    </div>
+    
+    <div class="progress">0/0</div>
+    <div class="instructions">拖动单词交换位置，相同主题的单词会被自动分组</div>
+    
+    <div class="word-pool" id="wordPool"></div>
+    
+    <div class="action-buttons">
+        <button class="check-button" id="checkButton" disabled>检查答案</button>
+        <button class="save-button" id="saveButton">保存图片</button>
+    </div>
+    
+    <div class="message" id="message"></div>
+
+      <!-- 添加解释弹窗和遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+    <div class="word-explanation" id="wordExplanation">
+        <h3 id="explanationTitle"></h3>
+        <p id="explanationContent"></p>
+        <button id="closeExplanation">关闭</button>
+    </div>
+    
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        // 游戏数据 - 环保主题的单词组（保持不变）
+        const gameData = {
+            // 3×3 简单模式 - 3组，每组3个单词
+            3: [
+                {
+                    group: 1,
+                    words: ["太阳能", "风能", "水能"],
+                    description: "可再生能源"
+                },
+                {
+                    group: 2,
+                    words: ["回收", "再利用", "减量"],
+                    description: "3R原则(减量、再利用、回收)"
+                },
+                {
+                    group: 3,
+                    words: ["植树", "湿地", "珊瑚礁"],
+                    description: "碳汇生态系统"
+                }
+            ],
+            
+            // 4×4 中等模式 - 4组，每组4个单词
+            4: [
+                {
+                    group: 1,
+                    words: ["温室效应", "全球变暖", "海平面上升", "极端天气"],
+                    description: "气候变化影响"
+                },
+                {
+                    group: 2,
+                    words: ["电动汽车", "公共交通", "自行车", "步行"],
+                    description: "可持续交通方式"
+                },
+                {
+                    group: 3,
+                    words: ["熊猫", "老虎", "北极熊", "珊瑚"],
+                    description: "濒危物种"
+                },
+                {
+                    group: 4,
+                    words: ["有机农业", "生态农业", "永续农业", "森林农业"],
+                    description: "可持续农业模式"
+                }
+            ],
+            
+            // 5×5 困难模式 - 5组，每组5个单词
+            5: [
+                {
+                    group: 1,
+                    words: ["碳足迹", "碳中和", "碳补偿", "碳交易", "碳税"],
+                    description: "碳相关概念"
+                },
+                {
+                    group: 2,
+                    words: ["雨林", "红树林", "草原", "苔原", "沙漠"],
+                    description: "地球生态系统"
+                },
+                {
+                    group: 3,
+                    words: ["光伏板", "风力涡轮机", "地热泵", "生物燃料", "潮汐能"],
+                    description: "可再生能源技术"
+                },
+                {
+                    group: 4,
+                    words: ["联合国气候变化框架公约", "巴黎协定", "京都议定书", "生物多样性公约", "2030可持续发展议程"],
+                    description: "国际环境协议"
+                },
+                {
+                    group: 5,
+                    words: ["生态旅游", "绿色建筑", "循环经济", "共享经济", "零废弃"],
+                    description: "可持续发展实践"
+                }
+            ]
+        };
+        
+        // 游戏状态（保持不变）
+        let gameState = {
+            selectedWords: [],
+            correctGroups: 0,
+            totalGroups: 0,
+            draggedWord: null,
+            currentLevel: 3,
+            wordGroups: [],
+            isCustomGame: false
+        };
+        
+        // 初始化游戏（保持不变）
+        function initGame(level, customGroups = null) {
+            gameState.currentLevel = level;
+            gameState.isCustomGame = customGroups !== null;
+            
+            if (customGroups) {
+                gameState.wordGroups = customGroups;
+            } else {
+                gameState.wordGroups = gameData[level];
+            }
+            
+            gameState.correctGroups = 0;
+            gameState.totalGroups = gameState.wordGroups.length;
+            
+            const wordPool = document.getElementById('wordPool');
+            wordPool.innerHTML = ''; // 清空单词池
+            
+            // 计算网格大小 (n×n，其中n是每组单词的数量)
+            const gridSize = gameState.wordGroups[0].words.length;
+            
+            // 设置网格布局
+            wordPool.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            wordPool.style.width = `${gridSize * 100}px`;
+            
+            // 收集所有单词并打乱顺序
+            let allWords = [];
+            gameState.wordGroups.forEach(group => {
+                allWords = allWords.concat(group.words);
+            });
+            
+            // 洗牌算法打乱单词顺序
+            allWords = shuffleArray(allWords);
+            
+            // 创建单词块
+            allWords.forEach(word => {
+                const wordBlock = document.createElement('div');
+                wordBlock.className = 'word-block';
+                wordBlock.textContent = word;
+                wordBlock.dataset.word = word;
+                wordBlock.draggable = true;
+                
+                // 找到这个单词属于哪一组
+                const groupInfo = findWordGroup(word);
+                if (groupInfo) {
+                    wordBlock.dataset.group = groupInfo.group;
+                }
+                
+                // 拖拽事件
+                wordBlock.addEventListener('dragstart', handleDragStart);
+                wordBlock.addEventListener('dragend', handleDragEnd);
+                wordBlock.addEventListener('dragover', handleDragOver);
+                wordBlock.addEventListener('drop', handleDrop);
+                
+                wordPool.appendChild(wordBlock);
+            });
+            
+            // 更新进度
+            updateProgress();
+            
+            // 重置按钮状态
+            document.getElementById('checkButton').disabled = false;
+            
+            // 更新关卡按钮状态
+            if (!gameState.isCustomGame) {
+                document.querySelectorAll('.level-btn').forEach(btn => {
+                    btn.classList.toggle('active', parseInt(btn.dataset.size) === level);
+                });
+            }
+        }
+        
+        // 初始化自定义配置界面（保持不变）
+        function initCustomConfig() {
+            const groupInputs = document.getElementById('groupInputs');
+            groupInputs.innerHTML = '';
+            
+            // 添加默认的2个组
+            addGroupInput();
+            addGroupInput();
+        }
+        
+        // 添加单词组输入（保持不变）
+        function addGroupInput() {
+            const groupInputs = document.getElementById('groupInputs');
+            const groupId = groupInputs.children.length + 1;
+            
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'group-input';
+            groupDiv.dataset.groupId = groupId;
+            
+            const label = document.createElement('label');
+            label.textContent = `单词组 ${groupId} (用逗号分隔单词)`;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = '例如: 太阳能,风能,水能';
+            input.dataset.groupId = groupId;
+            
+            const wordsDiv = document.createElement('div');
+            wordsDiv.className = 'group-words';
+            wordsDiv.id = `groupWords-${groupId}`;
+            
+            groupDiv.appendChild(label);
+            groupDiv.appendChild(input);
+            groupDiv.appendChild(wordsDiv);
+            
+            groupInputs.appendChild(groupDiv);
+            
+            // 添加输入事件监听器
+            input.addEventListener('input', function() {
+                updateWordTags(this);
+            });
+        }
+        
+        // 更新单词标签显示（保持不变）
+        function updateWordTags(input) {
+            const groupId = input.dataset.groupId;
+            const wordsDiv = document.getElementById(`groupWords-${groupId}`);
+            wordsDiv.innerHTML = '';
+            
+            const words = input.value.split(',').map(word => word.trim()).filter(word => word.length > 0);
+            
+            words.forEach((word, index) => {
+                const wordTag = document.createElement('span');
+                wordTag.className = 'word-tag';
+                wordTag.textContent = word;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '×';
+                removeBtn.addEventListener('click', function() {
+                    // 从输入中移除这个词
+                    const wordsArray = input.value.split(',').map(w => w.trim());
+                    wordsArray.splice(index, 1);
+                    input.value = wordsArray.join(', ');
+                    updateWordTags(input);
+                });
+                
+                wordTag.appendChild(removeBtn);
+                wordsDiv.appendChild(wordTag);
+            });
+        }
+        
+        // 开始自定义游戏（保持不变）
+        function startCustomGame() {
+            const groupInputs = document.querySelectorAll('.group-input');
+            const customGroups = [];
+            
+            // 检查至少有两个组
+            if (groupInputs.length < 2) {
+                showMessage("请至少添加两个单词组", "error");
+                return;
+            }
+            
+            // 收集所有组的单词
+            let allWords = [];
+            let groupSize = null;
+            
+            for (const groupInput of groupInputs) {
+                const input = groupInput.querySelector('input');
+                const words = input.value.split(',').map(word => word.trim()).filter(word => word.length > 0);
+                
+                // 检查每组至少有两个单词
+                if (words.length < 2) {
+                    showMessage("每个单词组至少需要两个单词", "error");
+                    return;
+                }
+                
+                // 检查所有组的单词数量是否一致
+                if (groupSize === null) {
+                    groupSize = words.length;
+                } else if (words.length !== groupSize) {
+                    showMessage("所有单词组的单词数量必须相同", "error");
+                    return;
+                }
+                
+                allWords = allWords.concat(words);
+            }
+            
+            // 检查是否有重复单词
+            const uniqueWords = [...new Set(allWords)];
+            if (uniqueWords.length !== allWords.length) {
+                showMessage("单词不能重复使用", "error");
+                return;
+            }
+            
+            // 创建自定义组
+            for (let i = 0; i < groupInputs.length; i++) {
+                const input = groupInputs[i].querySelector('input');
+                const words = input.value.split(',').map(word => word.trim()).filter(word => word.length > 0);
+                
+                customGroups.push({
+                    group: i + 1,
+                    words: words,
+                    description: `自定义组 ${i + 1}`
+                });
+            }
+            
+            // 隐藏自定义配置界面
+            document.getElementById('customConfig').style.display = 'none';
+            
+            // 初始化游戏
+            initGame(groupSize, customGroups);
+        }
+        
+        // 洗牌算法（保持不变）
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+        
+        // 找到单词所属的组（保持不变）
+        function findWordGroup(word) {
+            for (const group of gameState.wordGroups) {
+                if (group.words.includes(word)) {
+                    return group;
+                }
+            }
+            return null;
+        }
+        
+        // 拖拽开始（保持不变）
+        function handleDragStart(e) {
+            gameState.draggedWord = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.word);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        // 拖拽结束（保持不变）
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            checkRowsForCompletion();
+        }
+        
+        // 拖拽经过目标（保持不变）
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        // 放置单词 - 实现交换位置（保持不变）
+        function handleDrop(e) {
+            e.preventDefault();
+            if (gameState.draggedWord && e.target.classList.contains('word-block') && e.target !== gameState.draggedWord) {
+                // 获取父容器和所有子元素
+                const wordPool = document.getElementById('wordPool');
+                const words = Array.from(wordPool.children);
+                
+                // 获取拖动元素和目标元素的索引
+                const draggedIndex = words.indexOf(gameState.draggedWord);
+                const targetIndex = words.indexOf(e.target);
+                
+                // 交换两个元素的位置
+                if (draggedIndex < targetIndex) {
+                    wordPool.insertBefore(e.target, gameState.draggedWord);
+                    wordPool.insertBefore(gameState.draggedWord, words[targetIndex + 1]);
+                } else {
+                    wordPool.insertBefore(gameState.draggedWord, e.target);
+                    wordPool.insertBefore(e.target, words[draggedIndex + 1]);
+                }
+            }
+        }
+        
+        // 检查每一行是否有完整的正确分组（保持不变）
+        function checkRowsForCompletion() {
+            const wordPool = document.getElementById('wordPool');
+            const words = Array.from(wordPool.children);
+            
+            // 计算每组单词数量
+            const groupSize = gameState.wordGroups[0].words.length;
+            
+            // 将单词按行分组（每组单词数量决定每行单词数）
+            const rows = [];
+            for (let i = 0; i < words.length; i += groupSize) {
+                rows.push(words.slice(i, i + groupSize));
+            }
+            
+            // 检查每一行
+            rows.forEach(row => {
+                // 检查这一行是否有足够的单词
+                if (row.length === groupSize) {
+                    // 检查这一行所有单词是否属于同一组
+                    const firstGroup = row[0].dataset.group;
+                    let allSameGroup = true;
+                    
+                    for (const wordBlock of row) {
+                        if (wordBlock.dataset.group !== firstGroup) {
+                            allSameGroup = false;
+                            break;
+                        }
+                    }
+                    
+                    // 如果这一行是完整的分组
+                    if (allSameGroup) {
+                        // 检查这一行是否已经被标记为正确
+                        if (!row[0].classList.contains('correct')) {
+                            gameState.correctGroups++;
+                            const groupInfo = findWordGroup(row[0].dataset.word);
+                            showMessage(`正确！你完成了一组：${groupInfo.description}`, "success");
+                            
+                            // 标记这一行为正确
+                            row.forEach(wordBlock => {
+                                wordBlock.classList.add('correct');
+                                wordBlock.draggable = false; // 禁用已正确单词的拖动
+                            });
+                            
+                            // 更新进度
+                            updateProgress();
+                            
+                            // 检查是否完成所有分组
+                            if (gameState.correctGroups === gameState.totalGroups) {
+                                showMessage("恭喜！你完成了所有分组！", "success");
+                                document.getElementById('checkButton').disabled = true;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 检查答案（手动检查按钮）（保持不变）
+        function checkAnswer() {
+            const wordPool = document.getElementById('wordPool');
+            const words = Array.from(wordPool.children);
+            const groupSize = gameState.wordGroups[0].words.length;
+            
+            // 检查是否有选中的单词
+            const selectedWords = words.filter(word => word.classList.contains('selected'));
+            if (selectedWords.length !== groupSize) {
+                showMessage(`请选择${groupSize}个单词为一组`, "error");
+                return;
+            }
+            
+            // 检查选中的单词是否属于同一组
+            const firstGroup = selectedWords[0].dataset.group;
+            let allSameGroup = true;
+            
+            for (const wordBlock of selectedWords) {
+                if (wordBlock.dataset.group !== firstGroup) {
+                    allSameGroup = false;
+                    break;
+                }
+            }
+            
+            // 显示结果
+            if (allSameGroup) {
+                gameState.correctGroups++;
+                const groupInfo = findWordGroup(selectedWords[0].dataset.word);
+                showMessage(`正确！${groupInfo.description}`, "success");
+                
+                // 标记正确的单词
+                selectedWords.forEach(wordBlock => {
+                    wordBlock.classList.remove('selected');
+                    wordBlock.classList.add('correct');
+                    wordBlock.draggable = false; // 禁用已正确单词的拖动
+                });
+            } else {
+                showMessage("不正确，这些单词不属于同一组", "error");
+                
+                // 标记错误的单词
+                selectedWords.forEach(wordBlock => {
+                    wordBlock.classList.remove('selected');
+                    wordBlock.classList.add('incorrect');
+                    
+                    // 1秒后恢复原状
+                    setTimeout(() => {
+                        wordBlock.classList.remove('incorrect');
+                    }, 1000);
+                });
+            }
+            
+            // 更新进度
+            updateProgress();
+            
+            // 检查是否完成所有分组
+            if (gameState.correctGroups === gameState.totalGroups) {
+                showMessage("恭喜！你完成了所有分组！", "success");
+                document.getElementById('checkButton').disabled = true;
+            }
+        }
+        
+        // 保存当前关卡为图片（保持不变）
+        function saveAsImage() {
+            const wordPool = document.getElementById('wordPool');
+            
+            // 使用html2canvas将wordPool转换为canvas
+            html2canvas(wordPool).then(canvas => {
+                // 创建一个下载链接
+                const link = document.createElement('a');
+                link.download = `环保单词游戏-${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                showMessage("图片已保存！", "success");
+            }).catch(err => {
+                console.error('保存图片时出错:', err);
+                showMessage("保存图片时出错", "error");
+            });
+        }
+        
+        // 显示消息（保持不变）
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            // 3秒后隐藏消息
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 更新进度显示（保持不变）
+        function updateProgress() {
+            document.querySelector('.progress').textContent = 
+                `${gameState.correctGroups}/${gameState.totalGroups}`;
+        }
+        
+        // 初始化游戏（保持不变）
+        window.onload = function() {
+            // 设置关卡选择按钮事件
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                if (btn.id !== 'customLevelBtn') {
+                    btn.addEventListener('click', function() {
+                        const level = parseInt(this.dataset.size);
+                        initGame(level);
+                    });
+                }
+            });
+            
+            // 自定义关卡按钮
+            document.getElementById('customLevelBtn').addEventListener('click', function() {
+                document.getElementById('customConfig').style.display = 'block';
+                initCustomConfig();
+            });
+            
+            // 添加单词组按钮
+            document.getElementById('addGroupBtn').addEventListener('click', addGroupInput);
+            
+            // 开始自定义游戏按钮
+            document.getElementById('startCustomBtn').addEventListener('click', startCustomGame);
+            
+            // 关闭自定义配置按钮
+            document.getElementById('closeConfigBtn').addEventListener('click', function() {
+                document.getElementById('customConfig').style.display = 'none';
+            });
+            
+            // 设置检查答案按钮事件
+            document.getElementById('checkButton').addEventListener('click', checkAnswer);
+            
+            // 设置保存图片按钮事件
+            document.getElementById('saveButton').addEventListener('click', saveAsImage);
+            
+            // 默认加载3×3简单模式
+            initGame(3);
+        };
+    </script>
+</body>
+</html>

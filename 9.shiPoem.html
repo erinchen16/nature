@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>诗与自然 - 莫兰迪色系拼贴诗</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --dusty-rose: #d8a6a1;
+            --muted-green: #a6b8a5;
+            --warm-gray: #c4b8a9;
+            --soft-clay: #b8a6a1;
+            --pale-blue: #a6b8c4;
+            --paper: #f5f1e8;
+            --ink: #4a4a4a;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            line-height: 1.6;
+            color: var(--ink);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: var(--paper);
+        }
+        
+        h1 {
+            color: var(--ink);
+            text-align: center;
+            margin: 0 0 30px;
+            font-weight: 400;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+        }
+        
+        .game-description {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid var(--warm-gray);
+            font-size: 0.95rem;
+            line-height: 1.8;
+        }
+        
+        .word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: white;
+            border: 1px solid var(--warm-gray);
+        }
+        
+        .word {
+            background-color: var(--muted-green);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 2px;
+            cursor: grab;
+            font-size: 0.9rem;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .word:nth-child(5n+2) {
+            background-color: var(--dusty-rose);
+        }
+        
+        .word:nth-child(5n+3) {
+            background-color: var(--soft-clay);
+        }
+        
+        .word:nth-child(5n+4) {
+            background-color: var(--pale-blue);
+        }
+        
+        .word:nth-child(5n+5) {
+            background-color: var(--warm-gray);
+        }
+        
+        .poem-area {
+            min-height: 300px;
+            border: 1px solid var(--warm-gray);
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: white;
+            position: relative;
+        }
+        
+        .poem-area.empty::before {
+            content: "将词语拖拽到这里...";
+            color: var(--warm-gray);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .poem-word {
+            position: absolute;
+            background-color: var(--muted-green);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 2px;
+            font-size: 0.9rem;
+            cursor: move;
+        }
+        
+        .poem-word.type-2 {
+            background-color: var(--dusty-rose);
+        }
+        
+        .poem-word.type-3 {
+            background-color: var(--soft-clay);
+        }
+        
+        .poem-word.type-4 {
+            background-color: var(--pale-blue);
+        }
+        
+        .poem-word.type-5 {
+            background-color: var(--warm-gray);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background-color: white;
+            color: var(--ink);
+            border: 1px solid var(--ink);
+            padding: 8px 15px;
+            cursor: pointer;
+            font-family: 'Noto Serif SC', serif;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background-color: var(--ink);
+            color: white;
+        }
+        
+        #save-poem {
+            border-color: var(--dusty-rose);
+            color: var(--dusty-rose);
+        }
+        
+        #save-poem:hover {
+            background-color: var(--dusty-rose);
+            color: white;
+        }
+        
+        .theme-selector {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        select {
+            padding: 6px 10px;
+            border: 1px solid var(--warm-gray);
+            font-family: 'Noto Serif SC', serif;
+            background-color: white;
+            width: 200px;
+            text-align: center;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            color: var(--warm-gray);
+            font-size: 0.8rem;
+        }
+        
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>诗与自然</h1>
+    
+    <div class="game-description">
+        <p>用最简朴的方式，表达最深刻的可持续理念。从下方词库中选择词语，拖拽到创作区的任意位置，组成你的环保诗篇。</p>
+    </div>
+    
+    <div class="theme-selector">
+        <select id="theme">
+                <option value="general">通用词库</option>
+            <option value="nature">自然生态</option>
+            <option value="climate">气候变化</option>
+            <option value="waste">零废弃生活</option>
+            <option value="energy">可再生能源</option>
+        </select>
+    </div>
+    
+    <div class="word-bank" id="word-bank">
+        <!-- 词语将通过JavaScript动态生成 -->
+    </div>
+    
+    <div class="controls">
+        <button id="shuffle-words">刷新词库</button>
+        <button id="clear-poem">清空创作</button>
+        <button id="save-poem">保存图片</button>
+    </div>
+    
+    <div class="poem-area empty" id="poem-area"></div>
+    
+    <div class="footer">
+        <p>简约 · 可持续 · 诗意生活</p>
+    </div>
+    
+    <script>
+        // 不同主题的词语库
+        const wordThemes = {
+            general: [
+                "时间", "记忆", "光", "影子", "呼吸",
+                "沉默", "距离", "等待", "遗忘", "痕迹",
+                "孤独", "温柔", "碎片", "梦境", "回声"
+            ],
+            nature: [
+                "森林", "河流", "微风", "泥土", "种子", 
+                "生长", "根系", "落叶", "光合", "共生",
+                "栖息地", "生物多样性", "生态链", "年轮", "授粉"
+            ],
+            climate: [
+                "升温", "冰川", "碳足迹", "极端天气", "海平面",
+                "减排", "碳中和", "温室气体", "气候正义", "干旱"
+            ],
+            waste: [
+                "堆肥", "循环", "再利用", "减量", "回收",
+                "可持续", "零废弃", "升级改造", "生态设计", "垃圾分类"
+            ],
+            energy: [
+                "太阳能", "风能", "水能", "地热", "生物质",
+                "清洁能源", "电网", "储能", "光伏", "碳中和"
+            ]
+        };
+        
+        // 当前选中的主题
+        let currentTheme = 'nature';
+        
+        // DOM元素
+        const wordBankEl = document.getElementById('word-bank');
+        const poemAreaEl = document.getElementById('poem-area');
+        const themeSelectorEl = document.getElementById('theme');
+        
+        // 初始化游戏
+        function initGame() {
+            currentTheme = themeSelectorEl.value;
+            generateWordBank(currentTheme);
+            setupDragAndDrop();
+        }
+        
+        // 生成词库
+        function generateWordBank(theme) {
+            wordBankEl.innerHTML = '';
+            const words = wordThemes[theme];
+            
+            // 随机选择12个词语
+            const shuffled = [...words].sort(() => 0.5 - Math.random());
+            const selectedWords = shuffled.slice(0, 12);
+            
+            selectedWords.forEach((word, index) => {
+                const wordEl = document.createElement('div');
+                wordEl.className = 'word';
+                wordEl.textContent = word;
+                wordEl.draggable = true;
+                wordEl.dataset.type = (index % 5) + 1; // 为词语分配类型用于颜色
+                wordBankEl.appendChild(wordEl);
+            });
+        }
+        
+        // 设置拖拽功能
+        function setupDragAndDrop() {
+            // 为所有词语添加拖拽事件
+            document.querySelectorAll('.word').forEach(word => {
+                word.addEventListener('dragstart', dragStart);
+            });
+            
+            // 创作区的拖放事件
+            poemAreaEl.addEventListener('dragover', dragOver);
+            poemAreaEl.addEventListener('drop', drop);
+        }
+        
+        // 拖拽开始
+        function dragStart(e) {
+            const wordType = e.target.dataset.type;
+            e.dataTransfer.setData('text/plain', e.target.textContent);
+            e.dataTransfer.setData('type', wordType);
+            setTimeout(() => {
+                e.target.style.opacity = '0.4';
+            }, 0);
+        }
+    
+        // 拖拽经过
+        function dragOver(e) {
+            e.preventDefault();
+        }
+        
+        // 放置
+        function drop(e) {
+            e.preventDefault();
+            const word = e.dataTransfer.getData('text/plain');
+            const wordType = e.dataTransfer.getData('type');
+            
+            // 获取鼠标在创作区内的位置
+            const rect = poemAreaEl.getBoundingClientRect();
+            const x = e.clientX - rect.left - 15; // 15px为词语宽度的一半
+            const y = e.clientY - rect.top - 10;  // 10px为词语高度的一半
+            
+            // 如果创作区是空的，先清空提示文字
+            if (poemAreaEl.classList.contains('empty')) {
+                poemAreaEl.innerHTML = '';
+                poemAreaEl.classList.remove('empty');
+            }
+            
+            // 创建新的词语元素
+            const wordEl = document.createElement('div');
+            wordEl.className = `poem-word type-${wordType}`;
+            wordEl.textContent = word;
+            wordEl.style.left = `${x}px`;
+            wordEl.style.top = `${y}px`;
+            
+            // 使词语可拖动调整位置
+            makeDraggable(wordEl);
+            
+            // 添加到创作区
+            poemAreaEl.appendChild(wordEl);
+            
+            // 恢复词库中的词语显示
+            document.querySelectorAll('.word').forEach(el => {
+                if (el.textContent === word && el.style.opacity === '0.4') {
+                    el.style.opacity = '1';
+                }
+            });
+        }
+        
+        // 使诗歌中的词语可拖动
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            element.onmousedown = dragMouseDown;
+            
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // 获取鼠标位置
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                // 计算新位置
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                // 设置元素新位置
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+            }
+            
+            function closeDragElement() {
+                // 停止移动
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+        
+        // 保存诗歌为图片
+        function savePoem() {
+            const poemWords = poemAreaEl.querySelectorAll('.poem-word');
+            if (poemWords.length === 0) {
+                alert('请先创作诗歌再保存！');
+                return;
+            }
+            
+            // 使用html2canvas将创作区转换为图片
+            html2canvas(poemAreaEl).then(canvas => {
+                // 创建下载链接
+                const link = document.createElement('a');
+                link.download = '我的诗歌-' + new Date().toISOString().slice(0, 10) + '.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+        
+        // 事件监听
+        document.getElementById('shuffle-words').addEventListener('click', () => {
+            currentTheme = themeSelectorEl.value;
+            generateWordBank(currentTheme);
+            setupDragAndDrop();
+        });
+        
+        document.getElementById('clear-poem').addEventListener('click', () => {
+            poemAreaEl.innerHTML = '';
+            poemAreaEl.classList.add('empty');
+        });
+        
+        document.getElementById('save-poem').addEventListener('click', savePoem);
+        
+        themeSelectorEl.addEventListener('change', () => {
+            currentTheme = themeSelectorEl.value;
+            generateWordBank(currentTheme);
+            setupDragAndDrop();
+        });
+        
+        // 初始化游戏
+        initGame();
+    </script>
+</body>
+</html>

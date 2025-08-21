@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光眠星醒 - 对抗光污染</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: cursive;
+            background-color: #0a0a2a;
+            color: white;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #city {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #111;
+            transition: height 2s ease-in-out;
+        }
+        
+        .building {
+            position: absolute;
+            bottom: 0;
+            background-color: #333;
+            border-top: 2px solid #555;
+        }
+        
+        .window {
+            position: absolute;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        
+        .window.yellow {
+            background-color: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+        }
+        
+        .window.orange {
+            background-color: #ff9900;
+            box-shadow: 0 0 10px #ff9900;
+        }
+        
+        .window.red {
+            background-color: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+        
+        .window.highlight {
+            animation: pulse 0.5s infinite alternate;
+        }
+        
+        .shadow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 2px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .shadow::after {
+            content: "👩🏼‍💻";
+            font-size: 16px;
+        }
+        
+        #sky {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(to bottom, #000428, #0a0a2a);
+            overflow: hidden;
+            transition: height 2s ease-in-out;
+        }
+        
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+        
+        #score-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            z-index: 10;
+        }
+        
+        #time-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            z-index: 10;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 32px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 10;
+        }
+        
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .start-button {
+            margin-top: 30px;
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #7faed6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: cursive;
+            margin: 10px;
+        }
+        
+        #game-title {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #f1ed89;
+            text-shadow: 
+                0 0 8px rgba(127, 174, 214, 0.5),
+                0 0 2px rgba(255, 255, 255, 0.8);
+        }
+        
+        #game-instructions {
+            max-width: 600px;
+            text-align: left;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-family: cursive;
+            font-size: 20px;
+        }
+        
+        .instructions-table {
+            width: 70%;
+            margin: 20px 0;
+            border-collapse: collapse;
+                  font-family: cursive;
+            font-size: 20px;
+        }
+        
+        .instructions-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+        
+        .color-sample {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
+        /* Results Page Styles */
+        #results-page {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .sky-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        .results-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+            opacity: 0;
+            transition: opacity 1s ease-in-out 3s;
+        }
+
+        .results-score {
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 15px 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            width: 25%;
+        }
+
+        .restart-btn {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background: rgba(127, 174, 214, 0.2);
+            color: white;
+            border: 1px solid #7faed6;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .restart-btn:hover {
+            background: rgba(127, 174, 214, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(127, 174, 214, 0.3);
+        }
+        
+        /* Instructions Modal */
+        #instructions-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .modal-content {
+            background-color: #0a0a2a;
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 800px;
+            position: relative;
+            border: 2px solid #7faed6;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #7faed6;
+            cursor: pointer;
+        }
+        
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+
+        /*首页*/
+
+                body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a2a;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+        
+        #start-screen {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            overflow: hidden;
+        }
+        
+        #game-title {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: #f1ed89;
+            text-shadow: 
+                0 0 10px rgba(241, 237, 137, 0.8),
+                0 0 20px rgba(241, 237, 137, 0.6),
+                0 0 30px rgba(241, 237, 137, 0.4);
+            letter-spacing: 2px;
+            font-weight: 300;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 2s ease-out forwards;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 3rem;
+            color: #7faed6;
+            opacity: 0;
+            animation: fadeIn 2s ease-out 0.5s forwards;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.6;
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            opacity: 0;
+            animation: fadeIn 2s ease-out 1s forwards;
+        }
+        
+        .start-button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            background: rgba(127, 174, 214, 0.2);
+            color: white;
+            border: 1px solid #7faed6;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .start-button:hover {
+            background: rgba(127, 174, 214, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(127, 174, 214, 0.3);
+        }
+        
+        /* 星星样式 */
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+            opacity: 0;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* 流星效果 */
+        .shooting-star {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+            border-radius: 50%;
+            animation: shooting var(--shooting-duration) linear infinite;
+            opacity: 0;
+        }
+        
+        @keyframes shooting {
+            0% { 
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+            70% { opacity: 1; }
+            100% { 
+                transform: translateX(var(--shooting-distance-x)) translateY(var(--shooting-distance-y));
+                opacity: 0;
+            }
+        }
+        
+        /* 星座连线 */
+        .constellation-line {
+            position: absolute;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            transform-origin: left center;
+            z-index: 1;
+        }
+        
+        /* 文字切换区域样式 */
+        .text-slider {
+            width: 80%;
+            max-width: 800px;
+            min-height: 180px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            text-align: left;
+            line-height: 1.6;
+            backdrop-filter: blur(5px);
+            position: relative;
+        }
+        
+        .text-content {
+            display: none;
+        }
+        
+        .text-content.active {
+            display: block;
+            animation: fadeIn 1s;
+        }
+        
+        .text-nav {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .text-nav-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .text-nav-btn.active {
+            background-color: #7faed6;
+            transform: scale(1.2);
+        }
+        
+        .darkmap-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background-color: rgba(127, 174, 214, 0.3);
+            color: white;
+            border: 1px solid #7faed6;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: cursive;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .darkmap-btn:hover {
+            background-color: rgba(127, 174, 214, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(127, 174, 214, 0.3);
+        }
+        
+        .darkmap-btn::after {
+            content: "→";
+            font-size: 18px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+    <div id="start-screen">
+        <h1 id="game-title">光眠星醒</h1>
+        <div class="subtitle">关闭城市灯光，让被光污染遮蔽的星空重现</div>
+        
+        <div class="button-container">
+            <button id="start-button" class="start-button">开始游戏</button>
+            <button id="instructions-button" class="start-button">游戏介绍</button>
+        </div>
+    </div>
+        
+        <div id="sky"></div>
+        <div id="city"></div>
+        
+        <div id="score-container">得分: <span id="score">0</span></div>
+        <div id="time-container">剩余时间: <span id="time">5</span>秒</div>
+        
+        <div id="message"></div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructions-modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 style="text-align: center; color: #f1ed89;">游戏介绍</h2>
+            <p id="game-instructions">
+                光污染正在吞噬我们的星空！作为城市灯光管理员，你的任务是关闭不必要的灯光，让星星重新闪耀在夜空。<br><br>
+                游戏时间60秒。<br>
+                不同颜色的灯光需要不同的操作关闭，得分也不同：
+                
+                <table class="instructions-table">
+                    <tr>
+                        <td><span class="color-sample" style="background-color: #ffff00;"></span>黄色灯光</td>
+                        <td>点击关闭</td>
+                        <td>+1分</td>
+                        <td>有小人时点击: -2分</td>
+                    </tr>
+                    <tr>
+                        <td><span class="color-sample" style="background-color: #ff9900;"></span>橙色灯光</td>
+                        <td>双击关闭</td>
+                        <td>+3分</td>
+                        <td>有小人时点击: -6分</td>
+                    </tr>
+                    <tr>
+                        <td><span class="color-sample" style="background-color: #ff0000;"></span>红色灯光</td>
+                        <td>长按1秒关闭</td>
+                        <td>+5分</td>
+                        <td>有小人时点击: -10分</td>
+                    </tr>
+                </table>
+                
+                <br>注意：当窗户出现黑色小人👩🏼‍💻时，表示有人在使用灯光，此时关闭会扣分！
+                <br>关闭灯光使星星出现，每获得20分出现一颗星星。
+                <br>你能在60秒内恢复多少颗星星呢？
+            </p>
+        </div>
+    </div>
+
+    <!-- Results Page -->
+    <div id="results-page">
+        <img class="sky-image" id="result-image" src="" alt="星空图片">
+        <div class="results-content">
+            <div class="results-score">你恢复了 <span id="final-score">0</span> 颗星星</div>
+            
+            <div class="text-slider">
+                <div class="text-content active">
+                    在电灯发明之前，人类的生活、睡眠和工作在很大程度上都受日光的支配。这种昼夜交替的自然节律已融入所有生物的生命，无论人类还是植物。
+                    <br><br>
+                    但自托马斯·爱迪生于1880年获得白炽灯专利以来，电灯就成为20世纪中叶发达国家大多数家庭的标准配置。从那时起，家庭、办公室和街道有了照明，以至于2016年的一篇论文指出，全球近80%的地区受到了夜间光污染影响。
+                </div>
+                
+                <div class="text-content">
+                    随着技术进步和城市化扩张，全球人工照明区域预计每年扩大2.2%，夜空亮度持续攀升。这种对自然光周期的严重偏离正在影响野生动物、生物多样性、人类健康和全球能源效率。
+                    <br><br>
+                    光污染不仅让我们失去了星空，还扰乱了动物的迁徙模式、改变了捕食者与猎物的关系，并对人类的昼夜节律和睡眠模式产生负面影响。
+                </div>
+                
+                <div class="text-content">
+                    中国光污染地图(darkmap.cn)是一个展示全球光污染状况的交互式地图项目，它使用卫星数据和地面测量来可视化光污染的分布和强度。
+                    <br><br>
+                    通过这个地图，你可以看到你所在地区的夜间亮度级别，了解光污染如何影响你的社区，并发现附近仍然可以观赏到黑暗夜空的地方。
+                </div>
+                
+                <div class="text-nav">
+                    <button class="text-nav-btn active" data-index="0"></button>
+                    <button class="text-nav-btn" data-index="1"></button>
+                    <button class="text-nav-btn" data-index="2"></button>
+                </div>
+            </div>
+            
+            <div>            
+                <button class="restart-btn" id="darkmap-button">探索中国光污染地图</button>
+                <button class="restart-btn" id="restart-button">再玩一次</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 游戏变量
+        let score = 0;
+        let timeLeft = 60;
+        let gameActive = false;
+        let timer;
+        const maxStars = 30;
+        let starsVisible = 0;
+        let pressTimer;
+        let shadowInterval;
+        
+        // 星空图片数组
+        const skyImages = [
+            '1.jpg',
+            '2.jpg',
+            '3.jpg',
+            '4.jpg'
+        ];
+        
+        // 音效
+        const scoreSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3');
+        const penaltySound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3');
+        const startSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-game-show-intro-331.mp3');
+        const beginstar = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-magic-sparkle-902.mp3');
+
+        const starSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-magic-sparkle-902.mp3');
+        const windowCloseSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3');
+        const gameOverSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-retro-arcade-lose-2027.mp3');
+        const victorySound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3');
+        
+        // 预加载音效
+        function preloadSounds() {
+            [scoreSound, penaltySound, starSound, windowCloseSound, gameOverSound, victorySound,startSound,beginstar].forEach(sound => {
+                sound.volume = 0.3;
+                sound.load();
+            });
+        }
+        
+        // DOM元素
+        const startScreen = document.getElementById('start-screen');
+        const startButton = document.getElementById('start-button');
+        const instructionsButton = document.getElementById('instructions-button');
+        const instructionsModal = document.getElementById('instructions-modal');
+        const closeModal = document.querySelector('.close-modal');
+        const city = document.getElementById('city');
+        const sky = document.getElementById('sky');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const messageElement = document.getElementById('message');
+        const resultsPage = document.getElementById('results-page');
+        const resultImage = document.getElementById('result-image');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+        const resultsContent = document.querySelector('.results-content');
+        const darkmapButton = document.getElementById('darkmap-button');
+        
+        // 初始化游戏
+        function initGame() {
+            // 预加载音效
+            preloadSounds();
+            beginstar.play();
+
+            
+            // 重置城市和天空高度
+            city.style.height = '100%';
+            sky.style.height = '0%';
+            
+            // 创建建筑物
+            createBuildings();
+            
+            // 创建星星（初始不可见）
+            createStars();
+            
+            // 隐藏开始界面和结果页面
+            startScreen.style.display = 'none';
+            resultsPage.style.display = 'none';
+            resultsContent.style.opacity = '0';
+            
+            // 重置游戏状态
+            score = 0;
+            timeLeft = 60;
+            starsVisible = 0;
+            scoreElement.textContent = score;
+            timeElement.textContent = timeLeft;
+            gameActive = true;
+            
+            // 开始计时
+            timer = setInterval(updateTimer, 1000);
+            
+            // 开始阴影随机出现
+            startShadowEffect();
+            
+            showMessage("关闭灯光让星空重现！注意有小人的窗户！", 2000);
+
+            startSound.play();
+
+        }
+        
+        // 创建建筑物和窗户
+        function createBuildings() {
+            city.innerHTML = '';
+            
+            const buildingCount = 12;
+            const windowTypes = [
+                { class: 'yellow', score: 1, penalty: -2, ratio: 0.6 },
+                { class: 'orange', score: 3, penalty: -6, ratio: 0.3 },
+                { class: 'red', score: 5, penalty: -10, ratio: 0.1 }
+            ];
+            
+            for (let i = 0; i < buildingCount; i++) {
+                const buildingWidth = Math.random() * 150 + 100;
+                const buildingHeight = Math.random() * 200 + 100;
+                const buildingLeft = Math.random() * (window.innerWidth - buildingWidth);
+                
+                const building = document.createElement('div');
+                building.className = 'building';
+                building.style.width = `${buildingWidth}px`;
+                building.style.height = `${buildingHeight}px`;
+                building.style.left = `${buildingLeft}px`;
+                
+                // 创建窗户
+                const windowRows = Math.floor(buildingHeight / 40);
+                const windowCols = Math.floor(buildingWidth / 40);
+                
+                for (let row = 0; row < windowRows; row++) {
+                    for (let col = 0; col < windowCols; col++) {
+                        // 随机选择窗户类型
+                        const rand = Math.random();
+                        let typeIndex = 0;
+                        let cumulativeRatio = 0;
+                        
+                        for (let i = 0; i < windowTypes.length; i++) {
+                            cumulativeRatio += windowTypes[i].ratio;
+                            if (rand < cumulativeRatio) {
+                                typeIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        const windowType = windowTypes[typeIndex];
+                        const window = document.createElement('div');
+                        window.className = `window ${windowType.class}`;
+                        window.dataset.score = windowType.score;
+                        window.dataset.penalty = windowType.penalty;
+                        window.style.width = `${Math.random() * 10 + 10}px`;
+                        window.style.height = `${Math.random() * 10 + 10}px`;
+                        window.style.left = `${col * 40 + 10 + Math.random() * 10}px`;
+                        window.style.top = `${row * 40 + 10 + Math.random() * 10}px`;
+                        
+                        // 根据不同窗户类型添加不同事件
+                        if (windowType.class === 'yellow') {
+                            // 黄色 - 点击关闭
+                            window.addEventListener('click', function(e) {
+                                if (!gameActive) return;
+                                
+                                // 检查是否有阴影
+                                const shadow = window.querySelector('.shadow');
+                                if (shadow) {
+                                    // 有阴影，扣分
+                                    increaseScore(parseInt(window.dataset.penalty), true);
+                                    showMessage(`扣分！-${Math.abs(parseInt(window.dataset.penalty))}分`, 1000);
+                                } else {
+                                    // 无阴影，正常关闭
+                                    closeWindow(window);
+                                }
+                            });
+                        } else if (windowType.class === 'orange') {
+                            // 橙色 - 双击关闭
+                            window.addEventListener('dblclick', function(e) {
+                                if (!gameActive) return;
+                                
+                                // 检查是否有阴影
+                                const shadow = window.querySelector('.shadow');
+                                if (shadow) {
+                                    // 有阴影，扣分
+                                    increaseScore(parseInt(window.dataset.penalty), true);
+                                    showMessage(`扣分！-${Math.abs(parseInt(window.dataset.penalty))}分`, 1000);
+                                } else {
+                                    // 无阴影，正常关闭
+                                    closeWindow(window);
+                                }
+                            });
+                        } else if (windowType.class === 'red') {
+                            // 红色 - 长按关闭
+                            window.addEventListener('mousedown', function(e) {
+                                if (!gameActive) return;
+                                e.preventDefault(); // 防止拖动
+                                
+                                // 检查是否有阴影
+                                const shadow = window.querySelector('.shadow');
+                                if (shadow) {
+                                    // 有阴影，立即扣分
+                                    increaseScore(parseInt(window.dataset.penalty), true);
+                                    showMessage(`扣分！-${Math.abs(parseInt(window.dataset.penalty))}分`, 1000);
+                                    return;
+                                }
+                                
+                                // 无阴影，开始长按计时
+                                window.classList.add('highlight');
+                                pressTimer = setTimeout(() => {
+                                    closeWindow(window);
+                                }, 1000);
+                            });
+                            
+                            window.addEventListener('mouseup', function() {
+                                clearTimeout(pressTimer);
+                                window.classList.remove('highlight');
+                            });
+                            
+                            window.addEventListener('mouseleave', function() {
+                                clearTimeout(pressTimer);
+                                window.classList.remove('highlight');
+                            });
+                        }
+                        
+                        building.appendChild(window);
+                    }
+                }
+                
+                city.appendChild(building);
+            }
+        }
+        
+        // 开始阴影效果
+        function startShadowEffect() {
+            if (shadowInterval) clearInterval(shadowInterval);
+            
+            shadowInterval = setInterval(() => {
+                if (!gameActive) return;
+                
+                const windows = document.querySelectorAll('.window:not([style*="opacity: 0"])');
+                const windowsWithShadows = document.querySelectorAll('.window .shadow');
+                
+                // 移除一些现有阴影（约20%）
+                windowsWithShadows.forEach(shadow => {
+                    if (Math.random() < 0.2) {
+                        shadow.remove();
+                    }
+                });
+                
+                // 添加新阴影（约5%的窗户）
+                windows.forEach(window => {
+                    if (!window.querySelector('.shadow') && Math.random() < 0.05) {
+                        const shadow = document.createElement('div');
+                        shadow.className = 'shadow';
+                        window.appendChild(shadow);
+                    }
+                });
+            }, 2000);
+        }
+        
+        // 关闭窗户
+        function closeWindow(window) {
+            window.style.opacity = '0';
+            window.style.pointerEvents = 'none';
+            window.classList.remove('highlight');
+            
+            const points = parseInt(window.dataset.score);
+            increaseScore(points);
+            
+            // 播放关闭音效
+            windowCloseSound.currentTime = 0;
+            windowCloseSound.play();
+        }
+        
+        // 创建星星
+        function createStars() {
+            sky.innerHTML = '';
+            
+            for (let i = 0; i < maxStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const size = Math.random() * 3 + 1;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                
+                // 随机闪烁效果
+                if (Math.random() > 0.7) {
+                    star.style.animation = `twinkle ${Math.random() * 3 + 1}s infinite`;
+                }
+                
+                sky.appendChild(star);
+            }
+        }
+        
+        // 增加分数
+        function increaseScore(points, isPenalty = false) {
+            score += points;
+            scoreElement.textContent = score;
+            
+            // 播放得分或扣分音效
+            if (isPenalty) {
+                penaltySound.currentTime = 0;
+                penaltySound.play();
+            } else if (points > 0) {
+                scoreSound.currentTime = 0;
+                scoreSound.play();
+            }
+            
+            // 每获得20分显示一颗新星星
+            const starsToShow = Math.floor(score / 20);
+            while (starsVisible < starsToShow && starsVisible < maxStars) {
+                starsVisible++;
+                const stars = document.querySelectorAll('.star');
+                stars[starsVisible - 1].style.opacity = '1';
+                
+                // 播放星星出现音效
+                starSound.currentTime = 0;
+                starSound.play();
+                
+                if (starsVisible === maxStars) {
+                    endGame(true);
+                }
+            }
+        }
+        
+        // 更新计时器
+        function updateTimer() {
+            timeLeft--;
+            timeElement.textContent = timeLeft;
+            
+            if (timeLeft <= 0) {
+                endGame();
+            } else if (timeLeft <= 2) {
+                timeElement.style.color = 'red';
+            }
+        }
+        
+        // 结束游戏
+        function endGame(victory = false) {
+            clearInterval(timer);
+            if (shadowInterval) clearInterval(shadowInterval);
+            gameActive = false;
+            
+            // 关闭所有灯光
+            const windows = document.querySelectorAll('.window');
+            windows.forEach(window => {
+                window.style.opacity = '0';
+                window.style.pointerEvents = 'none';
+                window.classList.remove('highlight');
+            });
+            
+            // 显示所有星星
+            const stars = document.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.style.opacity = '1';
+            });
+            
+            // 动画效果：城市缩小，星空扩大
+            city.style.height = '100%';
+            sky.style.height = '0%';
+            
+            // 播放游戏结束或胜利音效
+            if (victory) {
+                victorySound.currentTime = 0;
+                victorySound.play();
+            } else {
+                gameOverSound.currentTime = 0;
+                gameOverSound.play();
+            }
+            
+            // 显示结果页面
+            setTimeout(() => {
+
+                victorySound.play();
+
+                // 随机选择一张星空图片
+                const randomImage = skyImages[Math.floor(Math.random() * skyImages.length)];
+                resultImage.src = randomImage;
+                
+                // 显示结果页面
+                resultsPage.style.display = 'block';
+                finalScoreElement.textContent = starsVisible;
+                
+                // 初始化文字切换功能
+                initTextSlider();
+                
+                // 3秒后淡入结果内容
+                setTimeout(() => {
+                    resultsContent.style.opacity = '1';
+                }, 3000);
+            }, 2000);
+        }
+        
+        // 显示消息
+        function showMessage(text, duration) {
+            messageElement.textContent = text;
+            messageElement.style.opacity = '1';
+            
+            setTimeout(() => {
+                messageElement.style.opacity = '0';
+            }, duration);
+        }
+        
+        // 文字切换功能
+        function initTextSlider() {
+            const textContents = document.querySelectorAll('.text-content');
+            const navButtons = document.querySelectorAll('.text-nav-btn');
+            
+            // 初始化显示第一个内容
+            textContents.forEach((content, index) => {
+                if (index === 0) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+            
+            // 导航按钮点击事件
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.index);
+                    
+                    // 更新活动状态
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 显示对应内容
+                    textContents.forEach((content, i) => {
+                        if (i === index) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            // 自动切换
+            let currentIndex = 0;
+            setInterval(() => {
+                if (!document.getElementById('results-page').style.display || 
+                    document.getElementById('results-page').style.display === 'none') return;
+                    
+                currentIndex = (currentIndex + 1) % textContents.length;
+                
+                // 更新活动状态
+                navButtons.forEach((btn, i) => {
+                    if (i === currentIndex) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                // 显示对应内容
+                textContents.forEach((content, i) => {
+                    if (i === currentIndex) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+            }, 8000); // 每8秒切换一次
+        }
+        
+        // 开始游戏按钮
+        startButton.addEventListener('click', initGame);
+        
+        // 游戏介绍按钮
+        instructionsButton.addEventListener('click', function() {
+            instructionsModal.style.display = 'block';
+            startSound.play();
+
+        });
+        
+        // 关闭介绍弹窗
+        closeModal.addEventListener('click', function() {
+            instructionsModal.style.display = 'none';
+        });
+        
+        // 点击弹窗外部关闭
+        window.addEventListener('click', function(event) {
+            if (event.target === instructionsModal) {
+                instructionsModal.style.display = 'none';
+            }
+        });
+        
+        // 重新开始按钮
+        restartButton.addEventListener('click', function() {
+            resultsPage.style.display = 'none';
+            initGame();
+        });
+        
+        // 跳转到光污染地图
+        darkmapButton.addEventListener('click', function() {
+            window.open('https://www.darkmap.cn/', '_blank');
+        });
+
+
+        //首页星空
+        // 创建星星背景
+        function createStars() {
+            beginstar.play();
+            const starCount = 200;
+            const startScreen = document.getElementById('start-screen');
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // 随机大小
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                
+                // 随机位置
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                
+                // 随机闪烁时间和延迟
+                const duration = Math.random() * 5 + 3;
+                const delay = Math.random() * 5;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.animationDelay = `${delay}s`;
+                
+                startScreen.appendChild(star);
+            }
+        }
+        
+        // 创建流星效果
+        function createShootingStars() {
+            const shootingStarCount = 3;
+            
+            for (let i = 0; i < shootingStarCount; i++) {
+                const shootingStar = document.createElement('div');
+                shootingStar.className = 'shooting-star';
+                
+                // 随机起始位置
+                const startX = Math.random() * 20;
+                const startY = Math.random() * 20;
+                shootingStar.style.left = `${startX}%`;
+                shootingStar.style.top = `${startY}%`;
+                
+                // 随机距离和方向
+                const distanceX = 50 + Math.random() * 50;
+                const distanceY = 20 + Math.random() * 20;
+                shootingStar.style.setProperty('--shooting-distance-x', `${distanceX}vw`);
+                shootingStar.style.setProperty('--shooting-distance-y', `${distanceY}vh`);
+                
+                // 随机持续时间和延迟
+                const duration = 2 + Math.random() * 3;
+                const delay = Math.random() * 15;
+                shootingStar.style.setProperty('--shooting-duration', `${duration}s`);
+                shootingStar.style.animationDelay = `${delay}s`;
+                
+                document.getElementById('start-screen').appendChild(shootingStar);
+            }
+        }
+        
+        // 创建星座连线
+        function createConstellations() {
+            const constellationCount = 5;
+            const startScreen = document.getElementById('start-screen');
+            
+            for (let i = 0; i < constellationCount; i++) {
+                // 星座星星数量
+                const starCount = 3 + Math.floor(Math.random() * 4);
+                const stars = [];
+                
+                // 创建星座星星
+                for (let j = 0; j < starCount; j++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    
+                    // 稍大的星星
+                    const size = 2 + Math.random() * 2;
+                    star.style.width = `${size}px`;
+                    star.style.height = `${size}px`;
+                    
+                    // 星座区域内的随机位置
+                    const centerX = 10 + Math.random() * 80;
+                    const centerY = 10 + Math.random() * 80;
+                    const offsetX = (Math.random() - 0.5) * 15;
+                    const offsetY = (Math.random() - 0.5) * 15;
+                    
+                    star.style.left = `${centerX + offsetX}%`;
+                    star.style.top = `${centerY + offsetY}%`;
+                    
+                    // 更亮的星星
+                    star.style.boxShadow = `0 0 ${size * 2}px white`;
+                    
+                    startScreen.appendChild(star);
+                    stars.push(star);
+                }
+                
+                // 创建星座连线
+                for (let j = 0; j < starCount - 1; j++) {
+                    const line = document.createElement('div');
+                    line.className = 'constellation-line';
+                    
+                    const star1 = stars[j];
+                    const star2 = stars[j + 1];
+                    
+                    // 获取星星位置
+                    const star1Rect = star1.getBoundingClientRect();
+                    const star2Rect = star2.getBoundingClientRect();
+                    
+                    const x1 = star1Rect.left + star1Rect.width / 2;
+                    const y1 = star1Rect.top + star1Rect.height / 2;
+                    const x2 = star2Rect.left + star2Rect.width / 2;
+                    const y2 = star2Rect.top + star2Rect.height / 2;
+                    
+                    // 计算连线的长度和角度
+                    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                    
+                    // 设置连线样式
+                    line.style.width = `${length}px`;
+                    line.style.left = `${x1}px`;
+                    line.style.top = `${y1}px`;
+                    line.style.transform = `rotate(${angle}deg)`;
+                    
+                    startScreen.appendChild(line);
+                }
+            }
+        }
+        
+        // 初始化星空背景
+        window.addEventListener('load', function() {
+            createStars();
+            createShootingStars();
+            createConstellations();
+        });
+    </script>
+</body>
+</html>

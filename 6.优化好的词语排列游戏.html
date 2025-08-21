@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环保单词排列游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #fcf6f6; /* 莫兰迪米白 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+            margin-bottom: 10px;
+        }
+        .level-selector {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .level-btn {
+            padding: 8px 16px;
+            background-color: #A89F94; /* 莫兰迪灰 */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .level-btn:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .level-btn.active {
+            background-color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .custom-level-btn {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+        }
+        .custom-level-btn:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .custom-level-btn.active {
+            background-color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .progress {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .instructions {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #8B7D6B; /* 莫兰迪灰褐 */
+            font-size: 16px;
+        }
+        .word-pool {
+            display: grid;
+            gap: 10px;
+            padding: 20px;
+            background-color: #E5D9CC; /* 莫兰迪浅米 */
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .word-block {
+            background-color: #fff3e8; /* 莫兰迪米灰 */
+            color: #5A4E42; /* 莫兰迪深褐 */
+            padding: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            user-select: none;
+            font-size: 16px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .word-block.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .word-block.selected {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+            transform: scale(0.95);
+        }
+        .word-block.correct {
+            background-color: #A3B899; /* 莫兰迪灰绿 */
+            color: white;
+            cursor: default;
+        }
+        .word-block.incorrect {
+            background-color: #C4A59E; /* 莫兰迪粉褐 */
+            color: white;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .check-button, .save-button {
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .check-button {
+            background-color: #A3B899; /* 莫兰迪灰绿 */
+        }
+        .check-button:hover {
+            background-color: #8B9D88; /* 莫兰迪深灰绿 */
+        }
+        .check-button:disabled {
+            background-color: #D1C4B7; /* 莫兰迪米灰 */
+            cursor: not-allowed;
+        }
+        .save-button {
+            background-color: #B8A99A; /* 莫兰迪浅褐 */
+        }
+        .save-button:hover {
+            background-color: #8B7D6B; /* 莫兰迪灰褐 */
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 16px;
+            display: none;
+        }
+        .success {
+            background-color: #E5E5D9; /* 莫兰迪浅米绿 */
+            color: #6B5D4D; /* 莫兰迪深褐 */
+            border: 1px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .error {
+            background-color: #E5D9D9; /* 莫兰迪浅粉 */
+            color: #8B6D6B; /* 莫兰迪粉褐 */
+            border: 1px solid #C4A59E; /* 莫兰迪粉褐 */
+        }
+        .custom-config {
+            display: none;
+            background-color: #ffead3; /* 莫兰迪米白 */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            width: 80%;
+            max-width: 500px;
+            border: 1px solid #D1C4B7; /* 莫兰迪米灰 */
+        }
+        .custom-config h3 {
+            margin-top: 0;
+            color: #6B5D4D; /* 莫兰迪深褐 */
+        }
+        .custom-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #D1C4B7;
+            border-radius: 4px;
+            box-sizing: border-box;
+            height: 100px;
+            resize: vertical;
+        }
+        .custom-example {
+            font-size: 14px;
+            color: #8B7D6B;
+            margin-bottom: 15px;
+        }
+        .custom-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .start-custom-btn, .close-config-btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            color: white;
+        }
+        .start-custom-btn {
+            background-color: #B8A99A;
+        }
+        .start-custom-btn:hover {
+            background-color: #8B7D6B;
+        }
+        .close-config-btn {
+            background-color: #C4A59E;
+        }
+        .close-config-btn:hover {
+            background-color: #A38B84;
+        }
+        /* 解释弹窗样式 */
+        .explanation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .explanation-content {
+            background-color: #F3E9DE;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid #8B7D6B;
+        }
+        .explanation-title {
+            color: #6B5D4D;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .explanation-text {
+            color: #5A4E42;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .close-explanation {
+            background-color: #8B7D6B;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+        }
+    </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- 左侧：3×3 关卡方格 -->
+    <section class="panel" id="levelsPanel">
+      <h2>选择关卡</h2>
+      <div class="grid-3x3">
+        <button class="level-btn" data-size="3" data-level="1">3×3<br>简单1</button>
+        <button class="level-btn" data-size="3" data-level="2">3×3<br>简单2</button>
+        <button class="level-btn" data-size="3" data-level="3">3×3<br>简单3</button>
+
+        <button class="level-btn" data-size="4" data-level="1">4×4<br>中等1</button>
+        <button class="level-btn" data-size="4" data-level="2">4×4<br>中等2</button>
+        <button class="level-btn" data-size="4" data-level="3">4×4<br>中等3</button>
+
+        <button class="level-btn" data-size="5" data-level="1">5×5<br>困难1</button>
+        <button class="level-btn" data-size="5" data-level="2">5×5<br>困难2</button>
+        <button class="level-btn" data-size="5" data-level="3">5×5<br>困难3</button>
+      </div>
+      <button class="level-btn custom-level-btn" id="customLevelBtn" style="width:200px;">自定义</button>
+    </section>
+
+    <!-- 右侧：游戏区域 -->
+    <section class="panel" id="gamePanel">
+      <h1>环保单词排列游戏</h1>
+
+      <!-- 自定义配置（默认隐藏） -->
+      <div class="custom-config" id="customConfig">
+        <h3>自定义关卡配置</h3>
+        <p class="custom-example">
+          输入格式：组1单词1,单词2,单词3|组2单词1,单词2,单词3<br>
+          例如：太阳能,风能,水能|回收,再利用,减量|植树,湿地,珊瑚礁
+        </p>
+        <textarea class="custom-input" id="customInput" placeholder="请输入单词分组，用|分隔不同组，用,分隔同组单词"></textarea>
+        <div class="custom-buttons">
+          <button class="start-custom-btn" id="startCustomBtn">开始游戏</button>
+          <button class="close-config-btn" id="closeConfigBtn">取消</button>
+        </div>
+      </div>
+
+      <div class="progress">0/0</div>
+      <div class="instructions">拖动单词交换位置，相同主题的单词会被自动分组</div>
+
+      <div class="word-pool" id="wordPool"></div>
+
+      <div class="action-buttons">
+        <button class="check-button" id="checkButton" disabled>检查答案</button>
+        <button class="save-button" id="saveButton">保存图片</button>
+      </div>
+
+      <div class="message" id="message"></div>
+
+      <!-- 解释弹窗 -->
+      <div class="explanation-modal" id="explanationModal">
+        <div class="explanation-content">
+          <div class="explanation-title" id="explanationWord"></div>
+          <div class="explanation-text" id="explanationText"></div>
+          <button class="close-explanation" id="closeExplanation">关闭</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==== 专属布局样式（仅 30 行） ==== -->
+  <style>
+    html,body{height:100%;margin:0;background:#fcf6f6;}
+    .wrapper{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:60px;
+      height:100%;
+      padding:0 20px;
+    }
+    .panel{
+      width:500px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+    }
+    h1,h2{margin:0 0 20px;color:#8B7D6B}
+    /* 3×3 关卡网格 */
+    .grid-3x3{
+      display:grid;
+      grid-template-columns:repeat(3,70px);
+      grid-template-rows:repeat(3,70px);
+      gap:10px;
+    }
+    .level-btn,.custom-level-btn{
+      width:100%;
+      height:100%;
+      border:none;
+      border-radius:6px;
+      background:#A89F94;
+      color:#fff;
+      cursor:pointer;
+      font-size:12px;
+      transition:background .3s;
+    }
+    .level-btn:hover{background:#8B7D6B}
+    .level-btn.active{background:#6B5D4D}
+    .custom-level-btn{grid-column:1/-1;height:40px;margin-top:10px}
+  </style>
+    
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        // 游戏数据 - 环保主题的单词组（已扩展）
+        const gameData = {
+            // 3×3 简单模式 - 新增2个关卡
+            3: {
+                // 第一个3×3关卡
+                1: [
+                    {
+                        group: 1,
+                        words: ["太阳能", "风能", "水能"],
+                        description: "可再生能源",
+                        explanations: {
+                            "太阳能": "利用太阳辐射能转换为电能或热能的可再生能源",
+                            "风能": "利用风力驱动风力涡轮机发电的可再生能源",
+                            "水能": "利用水流或水位差驱动水轮机发电的可再生能源"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["回收", "再利用", "减量"],
+                        description: "3R原则(减量、再利用、回收)",
+                        explanations: {
+                            "回收": "将废弃物处理加工后重新变为可用的原材料",
+                            "再利用": "将物品直接再次使用而不改变其形态",
+                            "减量": "减少资源消耗和废弃物产生的环保行为"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["植树", "湿地", "珊瑚礁"],
+                        description: "碳汇生态系统",
+                        explanations: {
+                            "植树": "通过种植树木吸收大气中的二氧化碳",
+                            "湿地": "具有强大碳储存能力的自然生态系统",
+                            "珊瑚礁": "海洋中重要的碳汇和生物多样性热点"
+                        }
+                    }
+                ],
+                // 第二个3×3关卡
+                2: [
+                    {
+                        group: 1,
+                        words: ["塑料", "玻璃", "纸张"],
+                        description: "可回收材料",
+                        explanations: {
+                            "塑料": "需要数百年才能降解的材料，应分类回收",
+                            "玻璃": "可无限次回收而不损失质量的环保材料",
+                            "纸张": "来自可再生资源的可回收材料"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["雾霾", "酸雨", "臭氧空洞"],
+                        description: "空气污染现象",
+                        explanations: {
+                            "雾霾": "由颗粒物和污染物导致的空气混浊现象",
+                            "酸雨": "pH值低于5.6的降水，由空气污染物引起",
+                            "臭氧空洞": "平流层臭氧减少导致的保护层缺失"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["节能灯", "节水器", "隔热窗"],
+                        description: "节能环保产品",
+                        explanations: {
+                            "节能灯": "比传统白炽灯更高效的照明产品",
+                            "节水器": "减少水流量的节水装置",
+                            "隔热窗": "减少能量损失的建筑窗户"
+                        }
+                    }
+                ],
+                // 第三个3×3关卡
+                3: [
+                    {
+                        group: 1,
+                        words: ["二氧化碳", "甲烷", "一氧化二氮"],
+                        description: "主要温室气体",
+                        explanations: {
+                            "二氧化碳": "最主要的温室气体，来自化石燃料燃烧",
+                            "甲烷": "温室效应比二氧化碳强25倍的温室气体",
+                            "一氧化二氮": "农业活动中产生的重要温室气体"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["垃圾分类", "厨余堆肥", "电子废弃物回收"],
+                        description: "废弃物管理方法",
+                        explanations: {
+                            "垃圾分类": "将废弃物按类别分开收集的处理方式",
+                            "厨余堆肥": "将有机厨余转化为肥料的处理方法",
+                            "电子废弃物回收": "对电子产品的专业回收处理"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["绿色出行", "低碳饮食", "简约生活"],
+                        description: "低碳生活方式",
+                        explanations: {
+                            "绿色出行": "选择环保的交通方式",
+                            "低碳饮食": "减少碳足迹的饮食选择",
+                            "简约生活": "减少不必要消费的生活方式"
+                        }
+                    }
+                ]
+            },
+            
+            // 4×4 中等模式 - 新增2个关卡
+            4: {
+                // 第一个4×4关卡
+                1: [
+                    {
+                        group: 1,
+                        words: ["温室效应", "全球变暖", "海平面上升", "极端天气"],
+                        description: "气候变化影响",
+                        explanations: {
+                            "温室效应": "大气中温室气体吸收地表辐射导致地球温度上升的自然现象",
+                            "全球变暖": "由于人类活动增强温室效应导致的地球平均温度上升",
+                            "海平面上升": "冰川融化和海水热膨胀导致的海平面升高现象",
+                            "极端天气": "气候变化导致的更频繁、更强烈的极端气象事件"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["电动汽车", "公共交通", "自行车", "步行"],
+                        description: "可持续交通方式",
+                        explanations: {
+                            "电动汽车": "使用电能驱动的汽车，减少化石燃料消耗和尾气排放",
+                            "公共交通": "多人共享的交通方式，提高运输效率和减少碳排放",
+                            "自行车": "零排放的个人交通工具，环保又健康",
+                            "步行": "最环保的出行方式，零排放且有益健康"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["熊猫", "老虎", "北极熊", "珊瑚"],
+                        description: "濒危物种",
+                        explanations: {
+                            "熊猫": "栖息地丧失导致濒危的标志性保护动物",
+                            "老虎": "因栖息地破坏和非法狩猎而濒危的大型猫科动物",
+                            "北极熊": "受气候变化影响最大的北极地区顶级掠食者",
+                            "珊瑚": "受海洋酸化和水温上升威胁的海洋生态系统基础"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["有机农业", "生态农业", "永续农业", "森林农业"],
+                        description: "可持续农业模式",
+                        explanations: {
+                            "有机农业": "不使用化学合成物质的农业生产方式",
+                            "生态农业": "模仿自然生态系统的农业生产方式",
+                            "永续农业": "设计可持续和自我维持的农业生态系统",
+                            "森林农业": "在森林环境中进行的多层次农业生产系统"
+                        }
+                    }
+                ],
+                // 第二个4×4关卡
+                2: [
+                    {
+                        group: 1,
+                        words: ["PM2.5", "二氧化硫", "氮氧化物", "挥发性有机物"],
+                        description: "空气污染物",
+                        explanations: {
+                            "PM2.5": "直径小于2.5微米的可吸入颗粒物",
+                            "二氧化硫": "主要来自燃煤的酸性气体污染物",
+                            "氮氧化物": "主要来自机动车尾气的大气污染物",
+                            "挥发性有机物": "易挥发的有机化合物，臭氧前体物"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["铅蓄电池", "汞温度计", "镉电池", "石棉瓦"],
+                        description: "危险废弃物",
+                        explanations: {
+                            "铅蓄电池": "含铅的废旧电池，需专业回收",
+                            "汞温度计": "含汞的医疗测量工具，需特殊处理",
+                            "镉电池": "含重金属镉的废弃电池",
+                            "石棉瓦": "含致癌物质石棉的建筑材料"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["绿色债券", "碳金融", "环境保险", "生态补偿"],
+                        description: "绿色金融工具",
+                        explanations: {
+                            "绿色债券": "为环保项目融资的债券工具",
+                            "碳金融": "与碳排放权交易相关的金融服务",
+                            "环境保险": "针对环境风险的保险产品",
+                            "生态补偿": "对生态保护行为的补偿机制"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["环境教育", "公众参与", "环保组织", "环境诉讼"],
+                        description: "环境治理参与方式",
+                        explanations: {
+                            "环境教育": "提高公众环境意识的教育活动",
+                            "公众参与": "公民参与环境决策的过程",
+                            "环保组织": "致力于环境保护的非政府组织",
+                            "环境诉讼": "通过法律手段解决环境问题的途径"
+                        }
+                    }
+                ],
+                // 第三个4×4关卡
+                3: [
+                    {
+                        group: 1,
+                        words: ["海绵城市", "垂直绿化", "绿色屋顶", "雨水花园"],
+                        description: "城市生态设计",
+                        explanations: {
+                            "海绵城市": "像海绵一样吸收雨水的城市设计理念",
+                            "垂直绿化": "在建筑墙面种植植物的绿化方式",
+                            "绿色屋顶": "在屋顶种植植物的生态设计",
+                            "雨水花园": "收集和利用雨水的景观设计"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["生态足迹", "水足迹", "碳足迹", "土地足迹"],
+                        description: "环境足迹指标",
+                        explanations: {
+                            "生态足迹": "衡量人类对自然资源需求的指标",
+                            "水足迹": "衡量产品生产消耗水资源的指标",
+                            "碳足迹": "衡量温室气体排放的指标",
+                            "土地足迹": "衡量土地利用需求的指标"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["清洁生产", "生命周期评估", "工业生态", "产品延伸责任"],
+                        description: "工业环保方法",
+                        explanations: {
+                            "清洁生产": "从源头减少污染的工业生产方式",
+                            "生命周期评估": "评估产品全生命周期环境影响的方法",
+                            "工业生态": "模拟自然生态系统的工业生产模式",
+                            "产品延伸责任": "生产者对产品全生命周期负责的制度"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["环境正义", "代际公平", "共同但有区别责任", "预防原则"],
+                        description: "环境伦理原则",
+                        explanations: {
+                            "环境正义": "公平分配环境利益和负担的原则",
+                            "代际公平": "当代与后代享有同等环境权利的原则",
+                            "共同但有区别责任": "各国共同但有区别的环境责任",
+                            "预防原则": "对潜在环境风险采取预防措施的原则"
+                        }
+                    }
+                ]
+            },
+            
+            // 5×5 困难模式 - 新增2个关卡
+            5: {
+                // 第一个5×5关卡
+                1: [
+                    {
+                        group: 1,
+                        words: ["碳足迹", "碳中和", "碳补偿", "碳交易", "碳税"],
+                        description: "碳相关概念",
+                        explanations: {
+                            "碳足迹": "个人或组织活动直接或间接产生的温室气体排放量",
+                            "碳中和": "通过减排和碳抵消实现净零碳排放的状态",
+                            "碳补偿": "通过资助减排项目抵消自身碳排放的行为",
+                            "碳交易": "碳排放权配额的市场化交易机制",
+                            "碳税": "对碳排放征收的环境税，以经济手段促进减排"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["雨林", "红树林", "草原", "苔原", "沙漠"],
+                        description: "地球生态系统",
+                        explanations: {
+                            "雨林": "年降雨量高、生物多样性最丰富的陆地生态系统",
+                            "红树林": "热带海岸潮间带的盐生植物群落，重要的碳汇和海岸保护者",
+                            "草原": "以草本植物为主的生态系统，重要的碳储存地",
+                            "苔原": "北极地区无树的冻土生态系统，储存大量有机碳",
+                            "沙漠": "降水量极少的生态系统，对气候变化敏感"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["光伏板", "风力涡轮机", "地热泵", "生物燃料", "潮汐能"],
+                        description: "可再生能源技术",
+                        explanations: {
+                            "光伏板": "将太阳能直接转换为电能的半导体装置",
+                            "风力涡轮机": "将风能转换为电能的大型机械装置",
+                            "地热泵": "利用地下恒温特性进行高效供暖制冷的系统",
+                            "生物燃料": "从生物质中提取的可再生燃料",
+                            "潮汐能": "利用潮汐涨落产生的动能发电的技术"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["联合国气候变化框架公约", "巴黎协定", "京都议定书", "生物多样性公约", "2030可持续发展议程"],
+                        description: "国际环境协议",
+                        explanations: {
+                            "联合国气候变化框架公约": "1992年通过的应对气候变化国际条约",
+                            "巴黎协定": "2015年通过的全球气候协议，目标控制温升在2°C内",
+                            "京都议定书": "1997年通过的首个具有法律约束力的减排协议",
+                            "生物多样性公约": "保护全球生物多样性的国际公约",
+                            "2030可持续发展议程": "联合国制定的17个可持续发展目标"
+                        }
+                    },
+                    {
+                        group: 5,
+                        words: ["生态旅游", "绿色建筑", "循环经济", "共享经济", "零废弃"],
+                        description: "可持续发展实践",
+                        explanations: {
+                            "生态旅游": "最小化环境影响并促进保护的负责任旅游方式",
+                            "绿色建筑": "高效利用资源并减少环境影响的建筑设计",
+                            "循环经济": "通过设计实现资源循环利用的经济模式",
+                            "共享经济": "最大化资源利用率的共享使用模式",
+                            "零废弃": "通过减少、重复使用和回收实现废弃物零填埋"
+                        }
+                    }
+                ],
+                // 第二个5×5关卡
+                2: [
+                    {
+                        group: 1,
+                        words: ["IPCC", "UNEP", "WWF", "IUCN", "Greenpeace"],
+                        description: "国际环保组织",
+                        explanations: {
+                            "IPCC": "政府间气候变化专门委员会",
+                            "UNEP": "联合国环境规划署",
+                            "WWF": "世界自然基金会",
+                            "IUCN": "世界自然保护联盟",
+                            "Greenpeace": "绿色和平组织"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["光污染", "噪声污染", "热污染", "放射性污染", "电磁污染"],
+                        description: "物理性污染",
+                        explanations: {
+                            "光污染": "过度或不当人工照明造成的影响",
+                            "噪声污染": "有害或令人不安的声音",
+                            "热污染": "人为改变环境温度造成的污染",
+                            "放射性污染": "放射性物质释放造成的污染",
+                            "电磁污染": "电磁辐射超出标准造成的污染"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["生物修复", "植物修复", "微生物修复", "化学修复", "物理修复"],
+                        description: "污染场地修复技术",
+                        explanations: {
+                            "生物修复": "利用生物降解污染物的技术",
+                            "植物修复": "利用植物吸收或降解污染物的技术",
+                            "微生物修复": "利用微生物降解污染物的技术",
+                            "化学修复": "利用化学反应处理污染物的技术",
+                            "物理修复": "利用物理方法处理污染物的技术"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["环境影响评价", "战略环境评价", "健康影响评价", "社会影响评价", "累积影响评价"],
+                        description: "环境评估方法",
+                        explanations: {
+                            "环境影响评价": "评估项目对环境影响的过程",
+                            "战略环境评价": "评估政策、计划和规划的环境影响",
+                            "健康影响评价": "评估项目对公共健康的影响",
+                            "社会影响评价": "评估项目对社会的影响",
+                            "累积影响评价": "评估多个活动的综合环境影响"
+                        }
+                    },
+                    {
+                        group: 5,
+                        words: ["生态红线", "环境容量", "排污许可", "总量控制", "生态补偿"],
+                        description: "环境管理制度",
+                        explanations: {
+                            "生态红线": "划定生态保护区域边界的制度",
+                            "环境容量": "环境可承受污染物的最大量",
+                            "排污许可": "允许排放污染物的许可证制度",
+                            "总量控制": "控制污染物排放总量的制度",
+                            "生态补偿": "对生态保护行为的补偿机制"
+                        }
+                    }
+                ],
+                // 第三个5×5关卡
+                3: [
+                    {
+                        group: 1,
+                        words: ["碳捕集", "碳封存", "碳利用", "直接空气捕集", "生物能源碳捕集"],
+                        description: "碳管理技术",
+                        explanations: {
+                            "碳捕集": "从排放源捕获二氧化碳的技术",
+                            "碳封存": "将二氧化碳长期储存的技术",
+                            "碳利用": "将二氧化碳转化为有用产品的技术",
+                            "直接空气捕集": "从大气中直接捕获二氧化碳的技术",
+                            "生物能源碳捕集": "结合生物能源与碳捕集的技术"
+                        }
+                    },
+                    {
+                        group: 2,
+                        words: ["绿色GDP", "环境会计", "自然资本核算", "生态系统服务价值", "真实发展指标"],
+                        description: "环境经济指标",
+                        explanations: {
+                            "绿色GDP": "扣除环境成本后的国内生产总值",
+                            "环境会计": "核算环境成本和效益的会计方法",
+                            "自然资本核算": "评估自然资源存量和流量的方法",
+                            "生态系统服务价值": "评估生态系统提供服务的价值",
+                            "真实发展指标": "超越GDP的综合发展指标"
+                        }
+                    },
+                    {
+                        group: 3,
+                        words: ["气候适应", "韧性城市", "生态廊道", "物种迁移", "基因库"],
+                        description: "生物多样性保护策略",
+                        explanations: {
+                            "气候适应": "适应气候变化的策略和措施",
+                            "韧性城市": "能够应对气候冲击的城市设计",
+                            "生态廊道": "连接生态系统的通道",
+                            "物种迁移": "帮助物种适应气候变化的迁移",
+                            "基因库": "保存生物遗传资源的设施"
+                        }
+                    },
+                    {
+                        group: 4,
+                        words: ["环境DNA", "遥感监测", "物联网", "大数据", "人工智能"],
+                        description: "环境监测新技术",
+                        explanations: {
+                            "环境DNA": "通过环境样本中的DNA监测生物",
+                            "遥感监测": "利用遥感技术监测环境",
+                            "物联网": "物联网技术在环境监测中的应用",
+                            "大数据": "大数据分析在环境保护中的应用",
+                            "人工智能": "AI在环境监测和管理中的应用"
+                        }
+                    },
+                    {
+                        group: 5,
+                        words: ["公民科学", "众包监测", "环境区块链", "数字双胞胎", "虚拟现实"],
+                        description: "公众参与环保新技术",
+                        explanations: {
+                            "公民科学": "公众参与科学数据收集和研究",
+                            "众包监测": "公众参与环境监测的方式",
+                            "环境区块链": "区块链技术在环保中的应用",
+                            "数字双胞胎": "创建环境系统的数字模型",
+                            "虚拟现实": "VR技术在环境教育中的应用"
+                        }
+                    }
+                ]
+            }
+        };
+        
+        // 游戏状态
+        let gameState = {
+            selectedWords: [],
+            correctGroups: 0,
+            totalGroups: 0,
+            draggedWord: null,
+            currentLevel: 3,
+            currentSubLevel: 1,
+            wordGroups: [],
+            isCustomGame: false
+        };
+        
+        // 初始化游戏
+        function initGame(level, subLevel = 1, customGroups = null) {
+            gameState.currentLevel = level;
+            gameState.currentSubLevel = subLevel;
+            gameState.isCustomGame = customGroups !== null;
+            
+            if (customGroups) {
+                gameState.wordGroups = customGroups;
+            } else {
+                gameState.wordGroups = gameData[level][subLevel];
+            }
+            
+            gameState.correctGroups = 0;
+            gameState.totalGroups = gameState.wordGroups.length;
+            
+            const wordPool = document.getElementById('wordPool');
+            wordPool.innerHTML = ''; // 清空单词池
+            
+            // 计算网格大小 (n×n，其中n是每组单词的数量)
+            const gridSize = gameState.wordGroups[0].words.length;
+            
+            // 设置网格布局
+            wordPool.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            wordPool.style.width = `${gridSize * 100}px`;
+            
+            // 收集所有单词并打乱顺序
+            let allWords = [];
+            gameState.wordGroups.forEach(group => {
+                allWords = allWords.concat(group.words);
+            });
+            
+            // 洗牌算法打乱单词顺序
+            allWords = shuffleArray(allWords);
+            
+            // 创建单词块
+            allWords.forEach(word => {
+                const wordBlock = document.createElement('div');
+                wordBlock.className = 'word-block';
+                wordBlock.textContent = word;
+                wordBlock.dataset.word = word;
+                wordBlock.draggable = true;
+                
+                // 找到这个单词属于哪一组
+                const groupInfo = findWordGroup(word);
+                if (groupInfo) {
+                    wordBlock.dataset.group = groupInfo.group;
+                }
+                
+                // 拖拽事件
+                wordBlock.addEventListener('dragstart', handleDragStart);
+                wordBlock.addEventListener('dragend', handleDragEnd);
+                wordBlock.addEventListener('dragover', handleDragOver);
+                wordBlock.addEventListener('drop', handleDrop);
+                
+                // 点击事件 - 显示解释
+                wordBlock.addEventListener('click', function(e) {
+                    // 如果正在拖拽则不触发点击事件
+                    if (gameState.draggedWord) {
+                        gameState.draggedWord = null;
+                        return;
+                    }
+                    
+                    showWordExplanation(word);
+                });
+                
+                wordPool.appendChild(wordBlock);
+            });
+            
+            // 更新进度
+            updateProgress();
+            
+            // 重置按钮状态
+            document.getElementById('checkButton').disabled = false;
+            
+            // 更新关卡按钮状态
+            if (!gameState.isCustomGame) {
+                document.querySelectorAll('.level-btn').forEach(btn => {
+                    const btnSize = parseInt(btn.dataset.size);
+                    const btnLevel = parseInt(btn.dataset.level);
+                    btn.classList.toggle('active', btnSize === level && btnLevel === subLevel);
+                });
+            }
+        }
+        
+        // 显示单词解释
+        function showWordExplanation(word) {
+            const modal = document.getElementById('explanationModal');
+            const wordTitle = document.getElementById('explanationWord');
+            const explanationText = document.getElementById('explanationText');
+            
+            // 找到单词所属的组
+            const groupInfo = findWordGroup(word);
+            
+            if (groupInfo && groupInfo.explanations && groupInfo.explanations[word]) {
+                wordTitle.textContent = word;
+                explanationText.textContent = groupInfo.explanations[word];
+                modal.style.display = 'flex';
+            } else if (groupInfo) {
+                wordTitle.textContent = word;
+                explanationText.textContent = `这是"${groupInfo.description}"组的一部分`;
+                modal.style.display = 'flex';
+            } else {
+                // 如果是自定义游戏且没有解释
+                wordTitle.textContent = word;
+                explanationText.textContent = "这是自定义游戏的一部分，没有详细解释";
+                modal.style.display = 'flex';
+            }
+        }
+        
+        // 开始自定义游戏
+        function startCustomGame() {
+            const inputText = document.getElementById('customInput').value.trim();
+            
+            if (!inputText) {
+                showMessage("请输入单词分组", "error");
+                return;
+            }
+            
+            // 解析输入文本
+            const groups = inputText.split('|').map(group => group.trim()).filter(group => group.length > 0);
+            
+            if (groups.length < 2) {
+                showMessage("请至少输入两个单词组", "error");
+                return;
+            }
+            
+            // 解析每个组的单词
+            const wordGroups = [];
+            let groupSize = null;
+            let allWords = [];
+            
+            for (let i = 0; i < groups.length; i++) {
+                const words = groups[i].split(',').map(word => word.trim()).filter(word => word.length > 0);
+                
+                // 检查每组至少有两个单词
+                if (words.length < 2) {
+                    showMessage("每个单词组至少需要两个单词", "error");
+                    return;
+                }
+                
+                // 检查所有组的单词数量是否一致
+                if (groupSize === null) {
+                    groupSize = words.length;
+                } else if (words.length !== groupSize) {
+                    showMessage("所有单词组的单词数量必须相同", "error");
+                    return;
+                }
+                
+                // 检查是否有重复单词
+                words.forEach(word => {
+                    if (allWords.includes(word)) {
+                        showMessage(`单词"${word}"重复使用`, "error");
+                        return;
+                    }
+                    allWords.push(word);
+                });
+                
+                // 创建组
+                wordGroups.push({
+                    group: i + 1,
+                    words: words,
+                    description: `自定义组 ${i + 1}`
+                });
+            }
+            
+            // 隐藏自定义配置界面
+            document.getElementById('customConfig').style.display = 'none';
+            
+            // 初始化游戏
+            initGame(groupSize, 1, wordGroups);
+        }
+        
+        // 洗牌算法
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+        
+        // 找到单词所属的组
+        function findWordGroup(word) {
+            for (const group of gameState.wordGroups) {
+                if (group.words.includes(word)) {
+                    return group;
+                }
+            }
+            return null;
+        }
+        
+        // 拖拽开始
+        function handleDragStart(e) {
+            gameState.draggedWord = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.word);
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        
+        // 拖拽结束
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            checkRowsForCompletion();
+        }
+        
+        // 拖拽经过目标
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+        
+        // 放置单词 - 实现交换位置
+        function handleDrop(e) {
+            e.preventDefault();
+            if (gameState.draggedWord && e.target.classList.contains('word-block') && e.target !== gameState.draggedWord) {
+                // 获取父容器和所有子元素
+                const wordPool = document.getElementById('wordPool');
+                const words = Array.from(wordPool.children);
+                
+                // 获取拖动元素和目标元素的索引
+                const draggedIndex = words.indexOf(gameState.draggedWord);
+                const targetIndex = words.indexOf(e.target);
+                
+                // 交换两个元素的位置
+                if (draggedIndex < targetIndex) {
+                    wordPool.insertBefore(e.target, gameState.draggedWord);
+                    wordPool.insertBefore(gameState.draggedWord, words[targetIndex + 1]);
+                } else {
+                    wordPool.insertBefore(gameState.draggedWord, e.target);
+                    wordPool.insertBefore(e.target, words[draggedIndex + 1]);
+                }
+            }
+        }
+        
+        // 检查每一行是否有完整的正确分组
+        function checkRowsForCompletion() {
+            const wordPool = document.getElementById('wordPool');
+            const words = Array.from(wordPool.children);
+            
+            // 计算每组单词数量
+            const groupSize = gameState.wordGroups[0].words.length;
+            
+            // 将单词按行分组（每组单词数量决定每行单词数）
+            const rows = [];
+            for (let i = 0; i < words.length; i += groupSize) {
+                rows.push(words.slice(i, i + groupSize));
+            }
+            
+            // 检查每一行
+            rows.forEach(row => {
+                // 检查这一行是否有足够的单词
+                if (row.length === groupSize) {
+                    // 检查这一行所有单词是否属于同一组
+                    const firstGroup = row[0].dataset.group;
+                    let allSameGroup = true;
+                    
+                    for (const wordBlock of row) {
+                        if (wordBlock.dataset.group !== firstGroup) {
+                            allSameGroup = false;
+                            break;
+                        }
+                    }
+                    
+                    // 如果这一行是完整的分组
+                    if (allSameGroup) {
+                        // 检查这一行是否已经被标记为正确
+                        if (!row[0].classList.contains('correct')) {
+                            gameState.correctGroups++;
+                            const groupInfo = findWordGroup(row[0].dataset.word);
+                            showMessage(`正确！你完成了一组：${groupInfo.description}`, "success");
+                            
+                            // 标记这一行为正确
+                            row.forEach(wordBlock => {
+                                wordBlock.classList.add('correct');
+                                wordBlock.draggable = false; // 禁用已正确单词的拖动
+                            });
+                            
+                            // 更新进度
+                            updateProgress();
+                            
+                            // 检查是否完成所有分组
+                            if (gameState.correctGroups === gameState.totalGroups) {
+                                showMessage("恭喜！你完成了所有分组！", "success");
+                                document.getElementById('checkButton').disabled = true;
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 检查答案（手动检查按钮）
+        function checkAnswer() {
+            const wordPool = document.getElementById('wordPool');
+            const words = Array.from(wordPool.children);
+            const groupSize = gameState.wordGroups[0].words.length;
+            
+            // 检查是否有选中的单词
+            const selectedWords = words.filter(word => word.classList.contains('selected'));
+            if (selectedWords.length !== groupSize) {
+                showMessage(`请选择${groupSize}个单词为一组`, "error");
+                return;
+            }
+            
+            // 检查选中的单词是否属于同一组
+            const firstGroup = selectedWords[0].dataset.group;
+            let allSameGroup = true;
+            
+            for (const wordBlock of selectedWords) {
+                if (wordBlock.dataset.group !== firstGroup) {
+                    allSameGroup = false;
+                    break;
+                }
+            }
+            
+            // 显示结果
+            if (allSameGroup) {
+                gameState.correctGroups++;
+                const groupInfo = findWordGroup(selectedWords[0].dataset.word);
+                showMessage(`正确！${groupInfo.description}`, "success");
+                
+                // 标记正确的单词
+                selectedWords.forEach(wordBlock => {
+                    wordBlock.classList.remove('selected');
+                    wordBlock.classList.add('correct');
+                    wordBlock.draggable = false; // 禁用已正确单词的拖动
+                });
+            } else {
+                showMessage("不正确，这些单词不属于同一组", "error");
+                
+                // 标记错误的单词
+                selectedWords.forEach(wordBlock => {
+                    wordBlock.classList.remove('selected');
+                    wordBlock.classList.add('incorrect');
+                    
+                    // 1秒后恢复原状
+                    setTimeout(() => {
+                        wordBlock.classList.remove('incorrect');
+                    }, 1000);
+                });
+            }
+            
+            // 更新进度
+            updateProgress();
+            
+            // 检查是否完成所有分组
+            if (gameState.correctGroups === gameState.totalGroups) {
+                showMessage("恭喜！你完成了所有分组！", "success");
+                document.getElementById('checkButton').disabled = true;
+            }
+        }
+        
+        // 保存当前关卡为图片
+        function saveAsImage() {
+            const wordPool = document.getElementById('wordPool');
+            
+            // 使用html2canvas将wordPool转换为canvas
+            html2canvas(wordPool).then(canvas => {
+                // 创建一个下载链接
+                const link = document.createElement('a');
+                link.download = `环保单词游戏-${new Date().toISOString().slice(0, 10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                showMessage("图片已保存！", "success");
+            }).catch(err => {
+                console.error('保存图片时出错:', err);
+                showMessage("保存图片时出错", "error");
+            });
+        }
+        
+        // 显示消息
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            // 3秒后隐藏消息
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 更新进度显示
+        function updateProgress() {
+            document.querySelector('.progress').textContent = 
+                `${gameState.correctGroups}/${gameState.totalGroups}`;
+        }
+        
+        // 初始化游戏
+        window.onload = function() {
+            // 设置关卡选择按钮事件
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                if (btn.id !== 'customLevelBtn') {
+                    btn.addEventListener('click', function() {
+                        const level = parseInt(this.dataset.size);
+                        const subLevel = parseInt(this.dataset.level);
+                        initGame(level, subLevel);
+                    });
+                }
+            });
+            
+            // 自定义关卡按钮
+            document.getElementById('customLevelBtn').addEventListener('click', function() {
+                document.getElementById('customConfig').style.display = 'block';
+                document.getElementById('customInput').value = '';
+            });
+            
+            // 开始自定义游戏按钮
+            document.getElementById('startCustomBtn').addEventListener('click', startCustomGame);
+            
+            // 关闭自定义配置按钮
+            document.getElementById('closeConfigBtn').addEventListener('click', function() {
+                document.getElementById('customConfig').style.display = 'none';
+            });
+            
+            // 设置检查答案按钮事件
+            document.getElementById('checkButton').addEventListener('click', checkAnswer);
+            
+            // 设置保存图片按钮事件
+            document.getElementById('saveButton').addEventListener('click', saveAsImage);
+            
+            // 设置关闭解释弹窗按钮
+            document.getElementById('closeExplanation').addEventListener('click', function() {
+                document.getElementById('explanationModal').style.display = 'none';
+            });
+            
+            // 点击弹窗外部关闭弹窗
+            document.getElementById('explanationModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+            
+            // 默认加载3×3简单模式第一关
+            initGame(3, 1);
+        };
+    </script>
+</body>
+</html>

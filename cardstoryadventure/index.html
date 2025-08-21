@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌟 故事卡牌大冒险</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="data.json" type="application/json" id="cardData"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e8e8e8;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        #add-note-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #f8f5da;
+            color: #5e6f64;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        #add-note-btn:hover {
+            background-color: #8fb3a5;
+        }
+        
+        #clear-all-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background-color: #f8f5da;
+            color: #5e6f64;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #clear-all-btn:hover {
+            background-color: #b38b85;
+        }
+        
+        #download-pdf-btn {
+            position: fixed;
+            bottom: 160px;
+            right: 20px;
+            background-color: #f8f5da;
+            color: #5e6f64;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #download-pdf-btn:hover {
+            background-color: #8fa3b5;
+        }
+        
+        .note {
+            position: absolute;
+            width: 200px;
+            min-height: 150px;
+            background-color: #f0e5d8;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            padding: 10px;
+            cursor: move;
+            overflow: hidden;
+        }
+        
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #d4c9bc;
+        }
+        
+        .note-content {
+            outline: none;
+            min-height: 100px;
+            overflow-wrap: break-word;
+            color: #5a5a5a;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #9a9a9a;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .delete-btn:hover {
+            color: #c4a59f;
+        }
+        
+        .color-picker {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .color-option {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #d4d4d4;
+        }
+    </style>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+</head>
+<body>
+
+    <!-- 规则弹窗 -->
+    <div class="rules-modal" id="rulesModal">
+        <div class="rules-content">
+            <span class="close-rules" onclick="closeRules()">×</span>
+
+            <h2>📖 游戏规则</h2>
+            
+            <p>🃏 <strong>卡牌规则</strong>：<br>
+            玩家轮流抽取卡牌，第一张卡牌一定是目标卡（联合国卡持续发展目标），玩家抽取到卡牌之后，需要编一句话，包含卡牌上的内容，接着下个玩家抽取卡牌，编的话要接着上个玩家编的剧情，且要包含卡牌上的内容。玩家编的整个故事要尽量去达成目标卡上的目标</p>
+            
+            <p>🏆 <strong>胜利条件</strong>：<br>
+            编出最有创意而且能成功完成目标的故事的小组就可以获得胜利！</p>
+        </div>
+
+    </div>
+
+    <div class="container" style="height: 3000px;">
+
+        <div class="settings" id="settingsPanel">
+            <div class="header">
+                <h1 class="title">🌟 故事卡牌大冒险</h1>
+                <p class="subtitle">创造属于你的可持续发展故事！</p>
+            </div>
+            <div class="setting-group">
+                <label class="setting-label">🎯 设定总卡牌数量：</label>
+                <input type="number" class="setting-input" id="totalCards" value="5" min="3" max="20">
+            </div>
+            <button class="button" onclick="startGame()">🚀 开始游戏</button>
+            <button class="rules-button" onclick="showRules()">📖 查看游戏规则</button>
+        </div>
+        
+        <div id="gamePanel" style="display: none;">
+
+            <div>
+                <button class="button" id="drawButton" onclick="drawCard()">🎴 抽卡</button>
+                <button class="button button-change" id="changeButton" onclick="changeCard()" style="display:none;">🔄 换卡</button>
+                <button class="button button-secondary" onclick="getStoryHint()" id="hintButton" style="display:block;">💡 故事提示</button>
+                <button class="button button-punish" onclick="drawPunishCard()">💥 抽取惩罚卡</button>
+                <button class="button button-speak" id="speakButton" style="display:none;" onclick="speakCardName()">🔊 发音</button>
+                <button class="button button-secondary" onclick="restartGame()">🔄 重开</button>
+
+                <div id="countdown">60</div>
+            </div>
+
+
+            <div class="game-info">
+                <p>🎲 卡牌进度：<span id="currentCard">0</span> / <span id="totalCardsDisplay">5</span></p>
+                <div class="progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-display" id="cardDisplay">
+                <div class="empty-state">
+                    点击下方按钮抽取你的第一张卡牌！✨
+                </div>
+            </div>
+            
+            <div class="cards-drawn" id="cardsDrawn" style="display: none;">
+                <h3>📚 已抽取的卡牌：</h3>
+                <div id="drawnCardsList"></div>
+            </div>
+            
+            <div class="story-hint" id="storyHint" style="display: none;"></div>
+
+        </div>
+    </div>
+    <!-- <script src="script.js"></script> -->
+    <!-- <button id="add-note-btn">+</button> -->
+    <button id="add-note-btn">+</button>
+    <button id="clear-all-btn" title="清空所有便利贴">⌫</button>
+    <button id="download-pdf-btn" title="下载为PDF">↓</button>
+
+  <script src="data.js"></script> 
+   <script src="storyhint.js"></script>
+
+
+    <script>
+
+        // 惩罚卡数据（直接定义在HTML中）
+// const punishCardsData = [
+//     {
+//         icon: "💥",
+//         name: "时间惩罚",
+//         description: "你的时间被减少了！",
+//         effect: "倒计时减少15秒"
+//     },
+//     {
+//         icon: "🔄",
+//         name: "重复惩罚",
+//         description: "你必须重复上一句话",
+//         effect: "重复你或上一个玩家说的最后一句话"
+//     },
+//     {
+//         icon: "⏸️",
+//         name: "暂停惩罚",
+//         description: "你的回合被暂停",
+//         effect: "跳过你的下一次抽卡机会"
+//     },
+//     {
+//         icon: "🔙",
+//         name: "倒退惩罚",
+//         description: "你必须回到上一步",
+//         effect: "取消你刚抽到的卡牌效果"
+//     }
+// ];
+                // 防止页面滚动和缩放
+        document.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('gesturestart', function(e) {
+            e.preventDefault();
+        });
+
+        // 显示规则弹窗
+        function showRules() {
+            document.getElementById('rulesModal').style.display = 'flex';
+            // 阻止背景滚动
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 关闭规则弹窗
+        function closeRules() {
+            document.getElementById('rulesModal').style.display = 'none';
+            // 恢复背景滚动
+            document.body.style.overflow = 'auto';
+        }
+        
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('rulesModal')) {
+                closeRules();
+            }
+        }
+
+        // 卡牌数据
+    
+
+        let gameState = {
+            totalCards: 5,
+            currentCard: 0,
+            drawnCards: [],
+            availableCards: [],
+            goalCard: null,
+            gameStarted: false,
+            remainingCards: [] // 新增：用于存储剩余可抽取的卡牌
+        };
+
+function startGame() {
+    const totalCards = parseInt(document.getElementById('totalCards').value);
+    if (totalCards < 3 || totalCards > 20) {
+        alert('请设置3-20张卡牌哦！😊');
+        return;
+    }
+
+    gameState.totalCards = totalCards;
+    gameState.currentCard = 0;
+    gameState.drawnCards = [];
+    gameState.gameStarted = true;
+
+    // 准备卡牌库
+    prepareCards();
+
+    // 切换界面
+    document.getElementById('settingsPanel').style.display = 'none';
+    document.getElementById('gamePanel').style.display = 'block';
+    document.getElementById('totalCardsDisplay').textContent = totalCards;
+
+    // 重置显示
+    document.getElementById('cardDisplay').innerHTML = '<div class="empty-state">点击下方按钮抽取你的第一张卡牌！✨</div>';
+    document.getElementById('cardsDrawn').style.display = 'none';
+    
+    // 修改这里：游戏开始时显示提示按钮和提示内容
+    document.getElementById('hintButton').style.display = 'inline-block';
+    document.getElementById('speakButton').style.display = 'none'; // 初始隐藏发音按钮
+    document.getElementById('changeButton').style.display = 'none'; // 初始隐藏换卡按钮
+    // document.getElementById('storyHint').style.display = 'block';
+    getStoryHint(); // 立即显示一个提示
+}
+
+        function prepareCards() {
+            // 随机选择一个目标卡作为必抽卡
+            gameState.goalCard = cardData.goals[Math.floor(Math.random() * cardData.goals.length)];
+            
+            // 准备其他类型的卡牌
+            const otherCards = [];
+            
+            // 添加角色卡
+            cardData.characters.forEach(card => {
+                otherCards.push({ ...card, type: 'character' });
+            });
+            
+            // 添加地点卡
+            cardData.locations.forEach(card => {
+                otherCards.push({ ...card, type: 'location' });
+            });
+            
+            // 添加物品卡
+            cardData.items.forEach(card => {
+                otherCards.push({ ...card, type: 'item' });
+            });
+            
+            // 添加行动卡
+            cardData.actions.forEach(card => {
+                otherCards.push({ ...card, type: 'action' });
+            });
+
+            // 打乱其他卡牌
+            shuffleArray(otherCards);
+            
+            // 准备可抽取卡牌：第一张是目标卡，然后是随机的其他卡牌
+            gameState.availableCards = [
+                { ...gameState.goalCard, type: 'goal' },
+                ...otherCards.slice(0, gameState.totalCards - 1)
+            ];
+
+            // 准备惩罚卡（使用内部定义的惩罚卡数据）
+            gameState.punishCards = [...punishCardsData];
+            shuffleArray(gameState.punishCards);
+            
+            // 初始化剩余卡牌（用于换卡功能）
+            gameState.remainingCards = [...otherCards.slice(gameState.totalCards - 1)];
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+ function drawCard() {
+    if (gameState.currentCard >= gameState.totalCards) {
+        alert('所有卡牌都抽完了！你可以开始编故事啦！😊');
+        return;
+    }
+
+    const card = gameState.availableCards[gameState.currentCard];
+    gameState.drawnCards.push(card);
+    gameState.currentCard++;
+
+    displayCard(card);
+    updateProgress();
+    updateDrawnCards();
+    
+    // 每次抽卡时启动倒计时
+    startCountdown();
+
+    if (gameState.currentCard >= gameState.totalCards) {
+        document.getElementById('drawButton').textContent = '🎉 抽卡完成！';
+        document.getElementById('drawButton').disabled = true;
+        document.getElementById('hintButton').style.display = 'inline-block';
+        document.getElementById('changeButton').style.display = 'none'; // 抽卡完成后隐藏换卡按钮
+        // 抽卡完成时停止倒计时
+        clearInterval(countdownTimer);
+    } else {
+        // 只有抽卡后才显示换卡按钮（第一张目标卡不能换）
+        if (gameState.currentCard > 1) {
+            document.getElementById('changeButton').style.display = 'inline-block';
+        }
+    }
+    
+    // 显示或隐藏发音按钮
+    if (card.englishName) {
+        document.getElementById('speakButton').style.display = 'inline-block';
+    } else {
+        document.getElementById('speakButton').style.display = 'none';
+    }
+}
+
+// 新增换卡功能
+function changeCard() {
+    // 不能更换第一张目标卡
+    if (gameState.currentCard <= 1) {
+        alert('第一张目标卡不能更换哦！');
+        return;
+    }
+    
+    // 检查是否还有剩余卡牌可换
+    if (gameState.remainingCards.length === 0) {
+        alert('没有更多可更换的卡牌了！');
+        return;
+    }
+    
+    // 从剩余卡牌中随机抽取一张
+    const randomIndex = Math.floor(Math.random() * gameState.remainingCards.length);
+    const newCard = gameState.remainingCards[randomIndex];
+    
+    // 替换当前卡牌
+    gameState.drawnCards[gameState.drawnCards.length - 1] = newCard;
+    
+    // 从剩余卡牌中移除这张卡
+    gameState.remainingCards.splice(randomIndex, 1);
+    
+    // 显示新卡牌
+    displayCard(newCard);
+    updateDrawnCards();
+    
+    // 重置倒计时
+    startCountdown();
+    
+    // 显示或隐藏发音按钮
+    if (newCard.englishName) {
+        document.getElementById('speakButton').style.display = 'inline-block';
+    } else {
+        document.getElementById('speakButton').style.display = 'none';
+    }
+    
+    // 移除了alert弹窗，直接换卡
+}
+
+function displayCard(card) {
+    // 将类型转换为中文显示
+    let typeName = '';
+    switch(card.type) {
+        case 'character': typeName = '角色'; break;
+        case 'goal': typeName = '目标'; break;
+        case 'location': typeName = '地点'; break;
+        case 'item': typeName = '物品'; break;
+        case 'action': typeName = '行动'; break;
+        default: typeName = card.type;
+    }
+    
+    const englishName = card.englishName || '';
+    const hasDetails = card.details && card.details.trim() !== '';
+    
+    // 如果有details内容，显示翻转卡片，否则显示简单卡片
+    if (hasDetails) {
+        const cardHtml = `
+            <div class="flip-card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <div class="flip-card-front">
+                        <div class="card ${card.type}">
+                            <div class="card-icon">${card.icon}</div>
+                            <div class="card-title">${card.name}</div>
+                            ${englishName ? `<div class="card-english">${englishName}</div>` : ''}
+                            <div class="card-type">${typeName}</div>
+                        </div>
+                    </div>
+                    <div class="flip-card-back">
+                        <div class="card ${card.type}">
+                            <div class="card-details">${card.details}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('cardDisplay').innerHTML = cardHtml;
+    } else {
+        const cardHtml = `
+            <div class="card ${card.type} simple-card">
+                <div class="card-icon">${card.icon}</div>
+                <div class="card-title">${card.name}</div>
+                ${englishName ? `<div class="card-english">${englishName}</div>` : ''}
+                <div class="card-type">${typeName}</div>
+                <div class="card-no-details">(无详细描述)</div>
+            </div>
+        `;
+        document.getElementById('cardDisplay').innerHTML = cardHtml;
+    }
+}
+
+        function updateProgress() {
+            const progress = (gameState.currentCard / gameState.totalCards) * 100;
+            document.getElementById('currentCard').textContent = gameState.currentCard;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function updateDrawnCards() {
+            if (gameState.drawnCards.length > 0) {
+                document.getElementById('cardsDrawn').style.display = 'block';
+                const cardsHtml = gameState.drawnCards.map(card => 
+                    `<span class="mini-card">${card.icon} ${card.name}</span>`
+                ).join('');
+                document.getElementById('drawnCardsList').innerHTML = cardsHtml;
+            }
+        }
+
+        function getStoryHint() {
+            const goalCard = gameState.drawnCards.find(card => card.type === 'goal');
+            if (!goalCard) return;
+
+            // const hints = [
+            //     `🌟 试试用"${goalCard.name}"作为你故事的主题，想想怎样能让世界变得更美好！`,
+            //     `✨ 你可以讲述一个关于"${goalCard.name}"的冒险故事，主人公如何解决这个问题？`,
+            //     `🎭 想象一下，如果没有"${goalCard.name}"这个问题，世界会是什么样子？`,
+            //     `🚀 你的角色们可以一起合作，用什么特殊方法来实现"${goalCard.name}"？`,
+            //     `💫 试着从小事开始，想想在日常生活中如何实现"${goalCard.name}"？`
+            // ];
+            
+            const randomHint = hints[Math.floor(Math.random() * hints.length)];
+            document.getElementById('storyHint').innerHTML = randomHint;
+            document.getElementById('storyHint').style.display = 'block';
+        }
+
+function restartGame() {
+    // 清除倒计时
+    clearInterval(countdownTimer);
+    
+    gameState = {
+        totalCards: 5,
+        currentCard: 0,
+        drawnCards: [],
+        availableCards: [],
+        goalCard: null,
+        gameStarted: false,
+        remainingCards: []
+    };
+
+    document.getElementById('settingsPanel').style.display = 'block';
+    document.getElementById('gamePanel').style.display = 'none';
+    document.getElementById('drawButton').disabled = false;
+    document.getElementById('drawButton').textContent = '🎴 抽取卡牌';
+    document.getElementById('storyHint').style.display = 'none';
+    document.getElementById('countdown').textContent = '60';
+    document.getElementById('speakButton').style.display = 'none';
+    document.getElementById('changeButton').style.display = 'none';
+}
+
+
+let countdownTimer;
+let timeLeft = 60;
+
+// 更新倒计时显示的函数
+function updateCountdown() {
+    document.getElementById('countdown').textContent = timeLeft;
+    
+    if (timeLeft <= 0) {
+        clearInterval(countdownTimer);
+        alert('时间到！请继续你的故事！');
+    } else {
+        timeLeft--;
+    }
+}
+
+// 开始倒计时
+function startCountdown() {
+    // 清除之前的计时器（如果有）
+    clearInterval(countdownTimer);
+    
+    // 重置时间
+    timeLeft = 60;
+    document.getElementById('countdown').textContent = timeLeft;
+    
+    // 开始新的计时器
+    countdownTimer = setInterval(updateCountdown, 1000);
+}
+
+function drawPunishCard() {
+    if (gameState.punishCards.length === 0) {
+        alert('所有惩罚卡已经抽完了！');
+        return;
+    }
+    
+    // 抽取一张惩罚卡
+    const punishCard = gameState.punishCards.pop();
+    
+    // 显示惩罚卡（但不添加到已抽取卡牌列表）
+    displayPunishCard(punishCard);
+    
+    // 执行惩罚效果
+    // applyPunishEffect(punishCard);
+    
+    // 启动倒计时
+    startCountdown();
+    
+    // 隐藏发音按钮（因为惩罚卡没有英文名称）
+    document.getElementById('speakButton').style.display = 'none';
+}
+
+// 新增显示惩罚卡函数
+function displayPunishCard(card) {
+    const cardHtml = `
+        <div class="card punish">
+            <div class="card-icon">${card.icon}</div>
+            <div class="card-title">${card.name}</div>
+            <div class="card-type">惩罚</div>
+            <div class="card-description">${card.description}</div>
+        </div>
+    `;
+    
+    document.getElementById('cardDisplay').innerHTML = cardHtml;
+}
+
+// 新增发音功能
+function speakCardName() {
+    const currentCard = gameState.drawnCards[gameState.drawnCards.length - 1];
+    if (!currentCard || !currentCard.englishName) return;
+    
+    // 使用Web Speech API进行发音
+    const utterance = new SpeechSynthesisUtterance(currentCard.englishName);
+    utterance.lang = 'en-US'; // 设置为英语发音
+    speechSynthesis.speak(utterance);
+}
+
+
+//便利贴
+    document.addEventListener('DOMContentLoaded', function() {
+            const addNoteBtn = document.getElementById('add-note-btn');
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
+            
+            // 从本地存储加载便利贴
+            loadNotes();
+            
+            // 添加新便利贴
+            addNoteBtn.addEventListener('click', function() {
+                createNote();
+            });
+            
+            // 清空所有便利贴
+            clearAllBtn.addEventListener('click', function() {
+                document.querySelectorAll('.note').forEach(note => note.remove());
+                localStorage.removeItem('stickyNotes');
+            });
+            
+            // 下载为PDF
+            downloadPdfBtn.addEventListener('click', function() {
+                // 创建临时元素用于PDF生成
+                const element = document.createElement('div');
+                element.style.padding = '20px';
+                element.style.backgroundColor = '#e8e8e8';
+                
+                // 复制所有便利贴到临时元素
+                const notes = document.querySelectorAll('.note');
+                notes.forEach(note => {
+                    const clone = note.cloneNode(true);
+                    // 移除拖拽相关属性和事件
+                    clone.style.position = 'relative';
+                    clone.style.left = 'auto';
+                    clone.style.top = 'auto';
+                    clone.style.margin = '10px';
+                    clone.style.cursor = 'auto';
+                    element.appendChild(clone);
+                });
+                
+                // 如果没有便利贴，添加提示
+                if (notes.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.textContent = '当前没有便利贴';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.style.padding = '20px';
+                    element.appendChild(emptyMsg);
+                }
+                
+                // PDF选项
+                const opt = {
+                    margin: 10,
+                    filename: '便利贴_' + new Date().toLocaleDateString() + '.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                // 生成PDF
+                html2pdf().from(element).set(opt).save();
+            });
+            
+            function createNote(x = 100, y = 100, content = '', color = '#f0e5d8') {
+                const note = document.createElement('div');
+                note.className = 'note';
+                note.style.left = x + 'px';
+                note.style.top = y + 'px';
+                note.style.backgroundColor = color;
+                
+                note.innerHTML = `
+                    <div class="note-header">
+                        <span>便利贴</span>
+                        <button class="delete-btn">×</button>
+                    </div>
+                    <div class="note-content" contenteditable="true">${content}</div>
+                    <div class="color-picker">
+                        <div class="color-option" style="background-color: #f0e5d8;" data-color="#f0e5d8"></div>
+                        <div class="color-option" style="background-color: #d8e0e8;" data-color="#d8e0e8"></div>
+                        <div class="color-option" style="background-color: #e8d8e0;" data-color="#e8d8e0"></div>
+                        <div class="color-option" style="background-color: #d0d8c0;" data-color="#d0d8c0"></div>
+                        <div class="color-option" style="background-color: #c8c0b8;" data-color="#c8c0b8"></div>
+                    </div>
+                `;
+                
+                document.body.appendChild(note);
+                
+                // 设置拖拽功能
+                makeDraggable(note);
+                
+                // 删除按钮事件
+                const deleteBtn = note.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', function() {
+                    note.remove();
+                    saveNotes();
+                });
+                
+                // 颜色选择器事件
+                const colorOptions = note.querySelectorAll('.color-option');
+                colorOptions.forEach(option => {
+                    option.addEventListener('click', function() {
+                        const color = this.getAttribute('data-color');
+                        note.style.backgroundColor = color;
+                        saveNotes();
+                    });
+                });
+                
+                // 内容编辑事件
+                const noteContent = note.querySelector('.note-content');
+                noteContent.addEventListener('input', function() {
+                    saveNotes();
+                });
+                
+                // 聚焦内容区域
+                noteContent.focus();
+                
+                // 保存到本地存储
+                saveNotes();
+            }
+            
+            function makeDraggable(element) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                const header = element.querySelector('.note-header');
+                
+                header.onmousedown = dragMouseDown;
+                
+                function dragMouseDown(e) {
+                    e = e || window.event;
+                    e.preventDefault();
+                    // 获取鼠标位置
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    // 调用移动函数
+                    document.onmousemove = elementDrag;
+                }
+                
+                function elementDrag(e) {
+                    e = e || window.event;
+                    e.preventDefault();
+                    // 计算新位置
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    // 设置元素新位置
+                    element.style.top = (element.offsetTop - pos2) + "px";
+                    element.style.left = (element.offsetLeft - pos1) + "px";
+                    
+                    // 保存位置
+                    saveNotes();
+                }
+                
+                function closeDragElement() {
+                    // 停止移动
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+            }
+            
+            function saveNotes() {
+                const notes = document.querySelectorAll('.note');
+                const notesData = [];
+                
+                notes.forEach(note => {
+                    notesData.push({
+                        x: parseInt(note.style.left),
+                        y: parseInt(note.style.top),
+                        content: note.querySelector('.note-content').innerHTML,
+                        color: note.style.backgroundColor
+                    });
+                });
+                
+                localStorage.setItem('stickyNotes', JSON.stringify(notesData));
+            }
+            
+            function loadNotes() {
+                const savedNotes = localStorage.getItem('stickyNotes');
+                
+                if (savedNotes) {
+                    const notesData = JSON.parse(savedNotes);
+                    
+                    notesData.forEach(noteData => {
+                        createNote(noteData.x, noteData.y, noteData.content, noteData.color);
+                    });
+                }
+            }
+        });
+
+</script>
+</body>
+</html>
